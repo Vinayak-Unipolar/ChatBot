@@ -183,75 +183,232 @@ async function processInstagramMessage(senderId, message) {
 // API Routes for manual message sending
 app.post('/api/send-message', async (req, res) => {
     try {
+        console.log('=== SEND MESSAGE REQUEST START ===');
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
+        console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+        console.log('Environment variables check:', {
+            pageId: process.env.PAGE_ID ? `Set (${process.env.PAGE_ID})` : 'NOT SET',
+            pageAccessToken: process.env.PAGE_ACCESS_TOKEN ? `Set (${process.env.PAGE_ACCESS_TOKEN.substring(0, 10)}...)` : 'NOT SET',
+            verifyToken: process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET',
+            nodeEnv: process.env.NODE_ENV || 'Not set'
+        });
+        
         const { userId, message, platform = 'messenger' } = req.body;
         
+        console.log('Parsed request data:', { userId, message, platform });
+        
         if (!userId || !message) {
-            return res.status(400).json({ error: 'Missing userId or message' });
+            console.log('Validation failed: missing userId or message');
+            return res.status(400).json({ 
+                error: 'Missing userId or message',
+                received: { userId, message, platform }
+            });
         }
         
+        console.log('Creating messenger instance for platform:', platform);
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        
+        console.log('Messenger instance created, checking if methods exist:', {
+            hasSendTextMessage: typeof messengerInstance.sendTextMessage === 'function',
+            hasSendImage: typeof messengerInstance.sendImage === 'function',
+            instanceType: messengerInstance.constructor.name
+        });
+        
+        console.log('Attempting to send message...');
         const result = await messengerInstance.sendTextMessage(userId, message);
+        
+        console.log('Message sent successfully:', JSON.stringify(result, null, 2));
+        console.log('=== SEND MESSAGE REQUEST END ===');
         
         res.json({ success: true, result });
     } catch (error) {
-        console.error('Send message error:', error);
-        res.status(500).json({ error: error.message });
+        console.error('=== SEND MESSAGE ERROR ===');
+        console.error('Error type:', error.constructor.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        console.error('Error details:', {
+            name: error.name,
+            code: error.code,
+            status: error.status,
+            statusCode: error.statusCode,
+            response: error.response ? {
+                status: error.response.status,
+                statusText: error.response.statusText,
+                data: error.response.data
+            } : 'No response object'
+        });
+        console.error('=== END ERROR LOG ===');
+        
+        res.status(500).json({ 
+            error: error.message, 
+            errorType: error.constructor.name,
+            errorCode: error.code,
+            details: 'Check server logs for more information'
+        });
     }
 });
 
 app.post('/api/send-image', async (req, res) => {
     try {
+        console.log('=== SEND IMAGE REQUEST START ===');
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
+        
         const { userId, imageUrl, platform = 'messenger' } = req.body;
         
+        console.log('Parsed request data:', { userId, imageUrl, platform });
+        
         if (!userId || !imageUrl) {
-            return res.status(400).json({ error: 'Missing userId or imageUrl' });
+            console.log('Validation failed: missing userId or imageUrl');
+            return res.status(400).json({ 
+                error: 'Missing userId or imageUrl',
+                received: { userId, imageUrl, platform }
+            });
         }
         
+        console.log('Creating messenger instance for platform:', platform);
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        
+        console.log('Attempting to send image...');
         const result = await messengerInstance.sendImage(userId, imageUrl);
+        
+        console.log('Image sent successfully:', JSON.stringify(result, null, 2));
+        console.log('=== SEND IMAGE REQUEST END ===');
         
         res.json({ success: true, result });
     } catch (error) {
-        console.error('Send image error:', error);
-        res.status(500).json({ error: error.message });
+        console.error('=== SEND IMAGE ERROR ===');
+        console.error('Error type:', error.constructor.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        console.error('=== END ERROR LOG ===');
+        
+        res.status(500).json({ 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information'
+        });
     }
 });
 
 // Get conversations
 app.get('/api/conversations', async (req, res) => {
     try {
+        console.log('=== GET CONVERSATIONS REQUEST START ===');
         const { platform = 'messenger' } = req.query;
+        console.log('Platform requested:', platform);
+        
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        console.log('Messenger instance created for platform:', platform);
+        
+        console.log('Attempting to get conversations...');
         const conversations = await messengerInstance.getConversations();
+        
+        console.log('Conversations retrieved successfully:', conversations ? 'Data received' : 'No data');
+        console.log('=== GET CONVERSATIONS REQUEST END ===');
         
         res.json(conversations);
     } catch (error) {
-        console.error('Get conversations error:', error);
-        res.status(500).json({ error: error.message });
+        console.error('=== GET CONVERSATIONS ERROR ===');
+        console.error('Error type:', error.constructor.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        console.error('=== END ERROR LOG ===');
+        
+        res.status(500).json({ 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information'
+        });
     }
 });
 
 // Get user profile
 app.get('/api/user/:userId', async (req, res) => {
     try {
+        console.log('=== GET USER PROFILE REQUEST START ===');
         const { userId } = req.params;
         const { platform = 'messenger' } = req.query;
+        
+        console.log('Requested user ID:', userId);
+        console.log('Platform requested:', platform);
+        
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        console.log('Messenger instance created for platform:', platform);
+        
+        console.log('Attempting to get user profile...');
         const profile = await messengerInstance.getUserProfile(userId);
+        
+        console.log('User profile retrieved successfully:', profile ? 'Data received' : 'No data');
+        console.log('=== GET USER PROFILE REQUEST END ===');
         
         res.json(profile);
     } catch (error) {
-        console.error('Get user profile error:', error);
-        res.status(500).json({ error: error.message });
+        console.error('=== GET USER PROFILE ERROR ===');
+        console.error('Error type:', error.constructor.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        console.error('=== END ERROR LOG ===');
+        
+        res.status(500).json({ 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information'
+        });
     }
 });
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+    console.log('=== HEALTH CHECK REQUEST ===');
+    console.log('Environment variables status:', {
+        pageId: process.env.PAGE_ID ? 'Set' : 'Not Set',
+        pageAccessToken: process.env.PAGE_ACCESS_TOKEN ? 'Set' : 'Not Set',
+        verifyToken: process.env.VERIFY_TOKEN ? 'Set' : 'Not Set',
+        nodeEnv: process.env.NODE_ENV || 'Not set',
+        port: process.env.PORT || 'Default (3000)'
+    });
+    
+    // Test messenger instance creation
+    let messengerStatus = 'Unknown';
+    let instagramStatus = 'Unknown';
+    
+    try {
+        if (messenger && typeof messenger.sendTextMessage === 'function') {
+            messengerStatus = 'Ready';
+        } else {
+            messengerStatus = 'Not Ready';
+        }
+    } catch (e) {
+        messengerStatus = `Error: ${e.message}`;
+    }
+    
+    try {
+        if (instagram && typeof instagram.sendTextMessage === 'function') {
+            instagramStatus = 'Ready';
+        } else {
+            instagramStatus = 'Not Ready';
+        }
+    } catch (e) {
+        instagramStatus = `Error: ${e.message}`;
+    }
+    
+    console.log('Messenger instances status:', { messenger: messengerStatus, instagram: instagramStatus });
+    console.log('=== HEALTH CHECK END ===');
+    
     res.json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        platform: 'Messenger API Express Server'
+        platform: 'Messenger API Express Server',
+        environment: {
+            pageId: process.env.PAGE_ID ? 'Set' : 'Not Set',
+            pageAccessToken: process.env.PAGE_ACCESS_TOKEN ? 'Set' : 'Not Set',
+            verifyToken: process.env.VERIFY_TOKEN ? 'Set' : 'Not Set',
+            nodeEnv: process.env.NODE_ENV || 'Not set'
+        },
+        instances: {
+            messenger: messengerStatus,
+            instagram: instagramStatus
+        }
     });
 });
 
@@ -273,24 +430,77 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-    console.error('Unhandled error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('=== UNHANDLED ERROR MIDDLEWARE ===');
+    console.error('Request URL:', req.url);
+    console.error('Request method:', req.method);
+    console.error('Request headers:', JSON.stringify(req.headers, null, 2));
+    console.error('Request body:', JSON.stringify(req.body, null, 2));
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('=== END UNHANDLED ERROR ===');
+    
+    res.status(500).json({ 
+        error: 'Internal server error',
+        errorType: error.constructor.name,
+        message: error.message,
+        details: 'Check server logs for more information'
+    });
 });
 
 // 404 handler
 app.use((req, res) => {
+    console.log('=== 404 NOT FOUND ===');
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    console.log('=== END 404 LOG ===');
+    
     res.status(404).json({ error: 'Endpoint not found' });
 });
 
 // Start server
 app.listen(PORT, () => {
+    console.log('=== SERVER STARTUP ===');
     console.log(`🚀 Messenger API Server running on port ${PORT}`);
     console.log(`📱 Webhook URL: http://localhost:${PORT}/webhook`);
     console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
     
+    console.log('Environment variables check:');
+    console.log('- PAGE_ID:', process.env.PAGE_ID ? `Set (${process.env.PAGE_ID})` : 'NOT SET');
+    console.log('- PAGE_ACCESS_TOKEN:', process.env.PAGE_ACCESS_TOKEN ? 'Set (first 10 chars: ' + process.env.PAGE_ACCESS_TOKEN.substring(0, 10) + '...)' : 'NOT SET');
+    console.log('- VERIFY_TOKEN:', process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET');
+    console.log('- NODE_ENV:', process.env.NODE_ENV || 'Not set');
+    console.log('- PORT:', process.env.PORT || 'Default (3000)');
+    
+    // Test messenger instances
+    try {
+        if (messenger && typeof messenger.sendTextMessage === 'function') {
+            console.log('✅ Messenger instance initialized successfully');
+        } else {
+            console.log('❌ Messenger instance failed to initialize properly');
+        }
+    } catch (e) {
+        console.log('❌ Error checking messenger instance:', e.message);
+    }
+    
+    try {
+        if (instagram && typeof instagram.sendTextMessage === 'function') {
+            console.log('✅ Instagram instance initialized successfully');
+        } else {
+            console.log('❌ Instagram instance failed to initialize properly');
+        }
+    } catch (e) {
+        console.log('❌ Error checking instagram instance:', e.message);
+    }
+    
     if (!process.env.PAGE_ID || !process.env.PAGE_ACCESS_TOKEN) {
         console.warn('⚠️  Missing required environment variables. Please check your .env file.');
+        console.warn('   This will cause API endpoints to fail.');
+    } else {
+        console.log('✅ All required environment variables are set');
     }
+    console.log('=== SERVER STARTUP COMPLETE ===');
 });
 
 module.exports = app;
