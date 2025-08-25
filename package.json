@@ -1,13 +1,16 @@
 {
   "name": "messenger-api-express",
   "version": "1.0.0",
-  "description": "Express.js implementation of Facebook Messenger Platform API integration",
+  "description": "Express.js implementation of Facebook Messenger Platform API integration with comprehensive logging",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+    "dev:verbose": "DEBUG=* nodemon app.js",
     "test-server": "node test-server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "logs:clear": "echo '' > logs/app.log",
+    "logs:watch": "tail -f logs/app.log"
   },
   "keywords": [
     "messenger",
@@ -15,7 +18,9 @@
     "api",
     "express",
     "nodejs",
-    "chatbot"
+    "chatbot",
+    "logging",
+    "debugging"
   ],
   "author": "Your Name",
   "license": "MIT",
