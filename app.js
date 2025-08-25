@@ -195,7 +195,7 @@ app.get('/webhook', (req, res) => {
         challenge: challenge ? 'Provided' : 'Missing',
         expectedToken: process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET'
     });
-    
+
     if (mode && token) {
         if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
             log.success('Webhook verified successfully');
@@ -236,7 +236,7 @@ app.post('/webhook', async (req, res) => {
         objectType: body.object,
         entryCount: body.entry ? body.entry.length : 'No entries'
     });
-    
+
     if (body.object === 'page') {
         log.info('📱 Processing Facebook Messenger webhook...');
         try {
@@ -268,7 +268,7 @@ app.post('/webhook', async (req, res) => {
                     // Mark message as seen
                     log.debug('Marking message as seen...');
                     try {
-                        await messenger.markAsSeen(senderId);
+                    await messenger.markAsSeen(senderId);
                         log.success('Message marked as seen');
                     } catch (error) {
                         log.error('Failed to mark message as seen', error);
@@ -277,7 +277,7 @@ app.post('/webhook', async (req, res) => {
                     // Send typing indicator
                     log.debug('Sending typing indicator...');
                     try {
-                        await messenger.sendTypingIndicator(senderId, true);
+                    await messenger.sendTypingIndicator(senderId, true);
                         log.success('Typing indicator started');
                     } catch (error) {
                         log.error('Failed to start typing indicator', error);
@@ -290,7 +290,7 @@ app.post('/webhook', async (req, res) => {
                     // Stop typing indicator
                     log.debug('Stopping typing indicator...');
                     try {
-                        await messenger.sendTypingIndicator(senderId, false);
+                    await messenger.sendTypingIndicator(senderId, false);
                         log.success('Typing indicator stopped');
                     } catch (error) {
                         log.error('Failed to stop typing indicator', error);
@@ -367,74 +367,280 @@ async function processMessage(senderId, message) {
             const text = message.text.toLowerCase();
             log.debug('Processing text message:', text);
             
-            // Simple bot logic - you can expand this
-            if (text.includes('hello') || text.includes('hi')) {
+            // Enhanced bot logic for v23.0 with more sophisticated responses
+            if (text.includes('hello') || text.includes('hi') || text.includes('hey')) {
                 log.debug('Sending greeting response...');
-                const response = 'Hello! How can I help you today?';
+                const response = 'Hello! 👋 Welcome to our enhanced Messenger bot powered by API v23.0! How can I help you today?';
                 log.debug('Response text:', response);
                 
                 const result = await messenger.sendTextMessage(senderId, response);
                 log.success('Greeting sent successfully', result);
-            } else if (text.includes('help')) {
-                log.debug('Sending help response with quick replies...');
+                
+                // Send follow-up quick replies
+                setTimeout(async () => {
+                    const quickReplies = [
+                        {
+                            content_type: 'text',
+                            title: '🚀 Get Started',
+                            payload: 'GET_STARTED'
+                        },
+                        {
+                            content_type: 'text',
+                            title: '📚 Learn More',
+                            payload: 'LEARN_MORE'
+                        },
+                        {
+                            content_type: 'text',
+                            title: '💬 Chat Support',
+                            payload: 'CHAT_SUPPORT'
+                        }
+                    ];
+                    
+                    await messenger.sendQuickReply(senderId, 'Choose an option to continue:', quickReplies);
+                }, 1000);
+                
+            } else if (text.includes('help') || text.includes('support')) {
+                log.debug('Sending help response with enhanced quick replies...');
                 const quickReplies = [
                     {
                         content_type: 'text',
-                        title: 'Get Started',
-                        payload: 'GET_STARTED'
+                        title: '🔧 Technical Help',
+                        payload: 'TECH_HELP'
                     },
                     {
                         content_type: 'text',
-                        title: 'Contact Support',
-                        payload: 'CONTACT_SUPPORT'
+                        title: '📱 Features',
+                        payload: 'FEATURES'
                     },
                     {
                         content_type: 'text',
-                        title: 'Learn More',
-                        payload: 'LEARN_MORE'
+                        title: '📞 Contact Us',
+                        payload: 'CONTACT_US'
+                    },
+                    {
+                        content_type: 'text',
+                        title: '🌐 Website',
+                        payload: 'WEBSITE'
                     }
                 ];
                 
                 log.debug('Quick replies to send:', quickReplies);
                 const result = await messenger.sendQuickReply(senderId, 'Here are some options to help you:', quickReplies);
                 log.success('Help message with quick replies sent successfully', result);
-            } else if (text.includes('button')) {
-                log.debug('Sending button template response...');
+                
+            } else if (text.includes('button') || text.includes('template')) {
+                log.debug('Sending enhanced button template response...');
                 const buttons = [
                     {
                         type: 'web_url',
                         url: 'https://developers.facebook.com/docs/messenger-platform',
-                        title: 'Visit Docs'
+                        title: '📚 Visit Docs',
+                        webview_height_ratio: 'full',
+                        messenger_extensions: true,
+                        fallback_url: 'https://developers.facebook.com/docs/messenger-platform'
                     },
                     {
                         type: 'postback',
-                        title: 'Get Started',
+                        title: '🚀 Get Started',
                         payload: 'GET_STARTED'
+                    },
+                    {
+                        type: 'web_url',
+                        url: 'https://github.com/facebook/messenger-platform',
+                        title: '💻 GitHub',
+                        webview_height_ratio: 'compact'
                     }
                 ];
                 
                 log.debug('Buttons to send:', buttons);
-                const result = await messenger.sendButtonTemplate(senderId, 'Check out these resources:', buttons);
+                const result = await messenger.sendButtonTemplate(senderId, 'Check out these resources powered by Messenger API v23.0:', buttons);
                 log.success('Button template sent successfully', result);
+                
+            } else if (text.includes('list') || text.includes('menu')) {
+                log.debug('Sending list template (new v23.0 feature)...');
+                const elements = [
+                    {
+                        title: '🚀 Getting Started',
+                        subtitle: 'Learn how to use our bot',
+                        image_url: 'https://picsum.photos/200/100?random=1',
+                        default_action: {
+                            type: 'web_url',
+                            url: 'https://example.com/getting-started'
+                        },
+                        buttons: [
+                            {
+                                type: 'web_url',
+                                title: 'Learn More',
+                                url: 'https://example.com/getting-started'
+                            }
+                        ]
+                    },
+                    {
+                        title: '📚 Documentation',
+                        subtitle: 'Complete API reference',
+                        image_url: 'https://picsum.photos/200/100?random=2',
+                        default_action: {
+                            type: 'web_url',
+                            url: 'https://example.com/docs'
+                        },
+                        buttons: [
+                            {
+                                type: 'web_url',
+                                title: 'View Docs',
+                                url: 'https://example.com/docs'
+                            }
+                        ]
+                    },
+                    {
+                        title: '💬 Support',
+                        subtitle: 'Get help when you need it',
+                        image_url: 'https://picsum.photos/200/100?random=3',
+                        default_action: {
+                            type: 'web_url',
+                            url: 'https://example.com/support'
+                        },
+                        buttons: [
+                            {
+                                type: 'web_url',
+                                title: 'Contact Support',
+                                url: 'https://example.com/support'
+                            }
+                        ]
+                    }
+                ];
+                
+                const buttons = [
+                    {
+                        type: 'web_url',
+                        title: '🌐 Visit Website',
+                        url: 'https://example.com'
+                    }
+                ];
+                
+                log.debug('List template elements to send:', elements);
+                const result = await messenger.sendListTemplate(senderId, elements, buttons);
+                log.success('List template sent successfully', result);
+                
+            } else if (text.includes('generic') || text.includes('cards')) {
+                log.debug('Sending generic template (new v23.0 feature)...');
+                const elements = [
+                    {
+                        title: '🎯 Feature 1',
+                        subtitle: 'Description of the first feature',
+                        image_url: 'https://picsum.photos/300/200?random=4',
+                        default_action: {
+                            type: 'web_url',
+                            url: 'https://example.com/feature1'
+                        },
+                        buttons: [
+                            {
+                                type: 'web_url',
+                                title: 'Learn More',
+                                url: 'https://example.com/feature1'
+                            },
+                            {
+                                type: 'postback',
+                                title: 'Try It',
+                                payload: 'TRY_FEATURE_1'
+                            }
+                        ]
+                    },
+                    {
+                        title: '⚡ Feature 2',
+                        subtitle: 'Description of the second feature',
+                        image_url: 'https://picsum.photos/300/200?random=5',
+                        default_action: {
+                            type: 'web_url',
+                            url: 'https://example.com/feature2'
+                        },
+                        buttons: [
+                            {
+                                type: 'web_url',
+                                title: 'Learn More',
+                                url: 'https://example.com/feature2'
+                            },
+                            {
+                                type: 'postback',
+                                title: 'Try It',
+                                payload: 'TRY_FEATURE_2'
+                            }
+                        ]
+                    }
+                ];
+                
+                log.debug('Generic template elements to send:', elements);
+                const result = await messenger.sendGenericTemplate(senderId, elements);
+                log.success('Generic template sent successfully', result);
+                
+            } else if (text.includes('insights') || text.includes('analytics')) {
+                log.debug('Getting page insights (new v23.0 feature)...');
+                try {
+                    const insights = await messenger.getPageInsights(['messages_received', 'messages_sent']);
+                    log.success('Page insights retrieved successfully', insights);
+                    
+                    const response = `📊 Here are your page insights:\n\n📨 Messages Received: ${insights.data?.[0]?.values?.[0]?.value || 'N/A'}\n📤 Messages Sent: ${insights.data?.[1]?.values?.[0]?.value || 'N/A'}`;
+                    await messenger.sendTextMessage(senderId, response);
+                } catch (error) {
+                    log.error('Failed to get page insights', error);
+                    await messenger.sendTextMessage(senderId, 'Sorry, I couldn\'t retrieve the insights at the moment.');
+                }
+                
+            } else if (text.includes('reaction') || text.includes('emoji')) {
+                log.debug('Sending reaction (new v23.0 feature)...');
+                const response = 'Here are some reactions you can use: 👍 👎 ❤️ 😂 😮 😢 😡';
+                await messenger.sendTextMessage(senderId, response);
+                
+            } else if (text.includes('notification') || text.includes('alert')) {
+                log.debug('Sending one-time notification (new v23.0 feature)...');
+                try {
+                    const result = await messenger.sendOneTimeNotification(senderId, '🔔 This is a one-time notification from our enhanced bot!', 'REGULAR');
+                    log.success('One-time notification sent successfully', result);
+                } catch (error) {
+                    log.error('Failed to send one-time notification', error);
+                    await messenger.sendTextMessage(senderId, 'Sorry, I couldn\'t send the notification at the moment.');
+                }
+                
+            } else if (text.includes('version') || text.includes('api')) {
+                log.debug('Sending API version information...');
+                const response = `🤖 Our bot is powered by:\n\n📱 Facebook Messenger Platform API v23.0\n🚀 Latest features and capabilities\n✨ Enhanced templates and messaging\n📊 Advanced analytics and insights`;
+                await messenger.sendTextMessage(senderId, response);
+                
             } else {
-                log.debug('Sending default response...');
-                const response = 'Thanks for your message! I\'m here to help.';
+                log.debug('Sending enhanced default response...');
+                const response = 'Thanks for your message! I\'m an enhanced bot powered by Messenger API v23.0. Try saying "help", "list", "generic", "insights", or "version" to see what I can do! 🚀';
                 log.debug('Default response text:', response);
                 
                 const result = await messenger.sendTextMessage(senderId, response);
                 log.success('Default response sent successfully', result);
             }
+        } else if (message.attachments) {
+            log.debug('Processing message with attachments');
+            const attachmentTypes = message.attachments.map(att => att.type);
+            log.debug('Attachment types:', attachmentTypes);
+            
+            if (attachmentTypes.includes('image')) {
+                await messenger.sendTextMessage(senderId, '🖼️ Thanks for sharing that image! I can see it clearly.');
+            } else if (attachmentTypes.includes('video')) {
+                await messenger.sendTextMessage(senderId, '🎥 Great video! Thanks for sharing.');
+            } else if (attachmentTypes.includes('audio')) {
+                await messenger.sendTextMessage(senderId, '🎵 I can hear your audio message!');
+            } else if (attachmentTypes.includes('file')) {
+                await messenger.sendTextMessage(senderId, '📄 I received your file!');
+            } else {
+                await messenger.sendTextMessage(senderId, '📎 Thanks for sharing that attachment!');
+            }
         } else {
-            log.warn('Message has no text content', {
+            log.warn('Message has no text content or attachments', {
                 messageKeys: Object.keys(message)
             });
+            await messenger.sendTextMessage(senderId, 'I received your message but I\'m not sure how to process it. Try sending text or use "help" to see what I can do!');
         }
     } catch (error) {
         log.error('Error processing message', error, { senderId });
         
         try {
             log.debug('Attempting to send error message to user...');
-            const errorResponse = 'Sorry, I encountered an error. Please try again.';
+            const errorResponse = 'Sorry, I encountered an error while processing your message. Please try again or say "help" for assistance.';
             await messenger.sendTextMessage(senderId, errorResponse);
             log.success('Error message sent to user');
         } catch (sendError) {
@@ -492,12 +698,12 @@ app.post('/api/send-message', async (req, res) => {
     });
     
     log.debug('Environment variables check', {
-        pageId: process.env.PAGE_ID ? `Set (${process.env.PAGE_ID})` : 'NOT SET',
-        pageAccessToken: process.env.PAGE_ACCESS_TOKEN ? `Set (${process.env.PAGE_ACCESS_TOKEN.substring(0, 10)}...)` : 'NOT SET',
-        verifyToken: process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET',
-        nodeEnv: process.env.NODE_ENV || 'Not set'
-    });
-    
+            pageId: process.env.PAGE_ID ? `Set (${process.env.PAGE_ID})` : 'NOT SET',
+            pageAccessToken: process.env.PAGE_ACCESS_TOKEN ? `Set (${process.env.PAGE_ACCESS_TOKEN.substring(0, 10)}...)` : 'NOT SET',
+            verifyToken: process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET',
+            nodeEnv: process.env.NODE_ENV || 'Not set'
+        });
+        
     try {
         const { userId, message, platform = 'messenger' } = req.body;
         
@@ -701,12 +907,498 @@ app.post('/api/send-image', async (req, res) => {
     }
 });
 
+// Send generic template (new v23.0 feature)
+app.post('/api/send-generic-template', async (req, res) => {
+    log.info('=== SEND GENERIC TEMPLATE API REQUEST START ===');
+    log.debug('Request details', {
+        body: req.body,
+        headers: req.headers,
+        ip: req.ip
+    });
+    
+    try {
+        const { userId, elements, platform = 'messenger' } = req.body;
+        
+        log.debug('Parsed request data', { userId, elements, platform });
+        
+        if (!userId || !elements || !Array.isArray(elements)) {
+            log.warn('Validation failed: missing userId or elements array', {
+                received: { userId, elements, platform }
+            });
+            
+            const errorResponse = { 
+                error: 'Missing userId or elements array',
+                received: { userId, elements, platform },
+                _logging: {
+                    timestamp: new Date().toISOString(),
+                    requestId: Date.now().toString(),
+                    validationError: 'Missing required fields',
+                    serverInfo: {
+                        nodeEnv: process.env.NODE_ENV || 'development',
+                        version: '1.0.0'
+                    }
+                }
+            };
+            
+            return res.status(400).json(errorResponse);
+        }
+        
+        log.debug('Creating messenger instance for platform', { platform });
+        const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        
+        log.debug('Attempting to send generic template...');
+        const startTime = Date.now();
+        const result = await messengerInstance.sendGenericTemplate(userId, elements);
+        const duration = Date.now() - startTime;
+        
+        log.success('Generic template sent successfully', {
+            result,
+            duration: `${duration}ms`,
+            platform,
+            userId,
+            elementsCount: elements.length
+        });
+        
+        log.info('=== SEND GENERIC TEMPLATE API REQUEST END ===');
+        
+        const successResponse = { 
+            success: true, 
+            result,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                elementsCount: elements.length,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
+    } catch (error) {
+        log.error('=== SEND GENERIC TEMPLATE API ERROR ===', error, {
+            requestBody: req.body,
+            userId: req.body.userId,
+            platform: req.body.platform
+        });
+        
+        const errorResponse = { 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
+    }
+});
+
+// Send list template (new v23.0 feature)
+app.post('/api/send-list-template', async (req, res) => {
+    log.info('=== SEND LIST TEMPLATE API REQUEST START ===');
+    log.debug('Request details', {
+        body: req.body,
+        headers: req.headers,
+        ip: req.ip
+    });
+    
+    try {
+        const { userId, elements, buttons, platform = 'messenger' } = req.body;
+        
+        log.debug('Parsed request data', { userId, elements, buttons, platform });
+        
+        if (!userId || !elements || !Array.isArray(elements)) {
+            log.warn('Validation failed: missing userId or elements array', {
+                received: { userId, elements, buttons, platform }
+            });
+            
+            const errorResponse = { 
+                error: 'Missing userId or elements array',
+                received: { userId, elements, buttons, platform },
+                _logging: {
+                    timestamp: new Date().toISOString(),
+                    requestId: Date.now().toString(),
+                    validationError: 'Missing required fields',
+                    serverInfo: {
+                        nodeEnv: process.env.NODE_ENV || 'development',
+                        version: '1.0.0'
+                    }
+                }
+            };
+            
+            return res.status(400).json(errorResponse);
+        }
+        
+        log.debug('Creating messenger instance for platform', { platform });
+        const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        
+        log.debug('Attempting to send list template...');
+        const startTime = Date.now();
+        const result = await messengerInstance.sendListTemplate(userId, elements, buttons);
+        const duration = Date.now() - startTime;
+        
+        log.success('List template sent successfully', {
+            result,
+            duration: `${duration}ms`,
+            platform,
+            userId,
+            elementsCount: elements.length,
+            hasButtons: !!buttons
+        });
+        
+        log.info('=== SEND LIST TEMPLATE API REQUEST END ===');
+        
+        const successResponse = { 
+            success: true, 
+            result,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                elementsCount: elements.length,
+                hasButtons: !!buttons,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
+    } catch (error) {
+        log.error('=== SEND LIST TEMPLATE API ERROR ===', error, {
+            requestBody: req.body,
+            userId: req.body.userId,
+            platform: req.body.platform
+        });
+        
+        const errorResponse = { 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
+    }
+});
+
+// Send reaction (new v23.0 feature)
+app.post('/api/send-reaction', async (req, res) => {
+    log.info('=== SEND REACTION API REQUEST START ===');
+    log.debug('Request details', {
+        body: req.body,
+        headers: req.headers,
+        ip: req.ip
+    });
+    
+    try {
+        const { userId, messageId, reaction, platform = 'messenger' } = req.body;
+        
+        log.debug('Parsed request data', { userId, messageId, reaction, platform });
+        
+        if (!userId || !messageId || !reaction) {
+            log.warn('Validation failed: missing required fields', {
+                received: { userId, messageId, reaction, platform }
+            });
+            
+            const errorResponse = { 
+                error: 'Missing userId, messageId, or reaction',
+                received: { userId, messageId, reaction, platform },
+                _logging: {
+                    timestamp: new Date().toISOString(),
+                    requestId: Date.now().toString(),
+                    validationError: 'Missing required fields',
+                    serverInfo: {
+                        nodeEnv: process.env.NODE_ENV || 'development',
+                        version: '1.0.0'
+                    }
+                }
+            };
+            
+            return res.status(400).json(errorResponse);
+        }
+        
+        log.debug('Creating messenger instance for platform', { platform });
+        const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        
+        log.debug('Attempting to send reaction...');
+        const startTime = Date.now();
+        const result = await messengerInstance.sendReaction(userId, messageId, reaction);
+        const duration = Date.now() - startTime;
+        
+        log.success('Reaction sent successfully', {
+            result,
+            duration: `${duration}ms`,
+            platform,
+            userId,
+            messageId,
+            reaction
+        });
+        
+        log.info('=== SEND REACTION API REQUEST END ===');
+        
+        const successResponse = { 
+            success: true, 
+            result,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                reaction: reaction,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
+    } catch (error) {
+        log.error('=== SEND REACTION API ERROR ===', error, {
+            requestBody: req.body,
+            userId: req.body.userId,
+            platform: req.body.platform
+        });
+        
+        const errorResponse = { 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
+    }
+});
+
+// Get page insights (new v23.0 feature)
+app.get('/api/insights', async (req, res) => {
+    log.info('=== GET PAGE INSIGHTS API REQUEST START ===');
+    const { platform = 'messenger', metrics = 'messages_received,messages_sent' } = req.query;
+    
+    log.debug('Request parameters', { platform, metrics });
+    
+    try {
+        const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        log.debug('Messenger instance created for platform', { platform });
+        
+        const metricsArray = metrics.split(',');
+        log.debug('Attempting to get page insights...');
+        const startTime = Date.now();
+        const insights = await messengerInstance.getPageInsights(metricsArray);
+        const duration = Date.now() - startTime;
+        
+        log.success('Page insights retrieved successfully', {
+            hasData: !!insights,
+            dataSize: insights ? JSON.stringify(insights).length : 0,
+            duration: `${duration}ms`,
+            platform,
+            metrics: metricsArray
+        });
+        
+        log.info('=== GET PAGE INSIGHTS API REQUEST END ===');
+        
+        const successResponse = { 
+            ...insights,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                metrics: metricsArray,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
+    } catch (error) {
+        log.error('=== GET PAGE INSIGHTS API ERROR ===', error, {
+            platform: platform,
+            metrics: metrics
+        });
+        
+        const errorResponse = { 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
+    }
+});
+
+// Send one-time notification (new v23.0 feature)
+app.post('/api/send-notification', async (req, res) => {
+    log.info('=== SEND ONE-TIME NOTIFICATION API REQUEST START ===');
+    log.debug('Request details', {
+        body: req.body,
+        headers: req.headers,
+        ip: req.ip
+    });
+    
+    try {
+        const { userId, message, notificationType = 'REGULAR', platform = 'messenger' } = req.body;
+        
+        log.debug('Parsed request data', { userId, message, notificationType, platform });
+        
+        if (!userId || !message) {
+            log.warn('Validation failed: missing userId or message', {
+                received: { userId, message, notificationType, platform }
+            });
+            
+            const errorResponse = { 
+                error: 'Missing userId or message',
+                received: { userId, message, notificationType, platform },
+                _logging: {
+                    timestamp: new Date().toISOString(),
+                    requestId: Date.now().toString(),
+                    validationError: 'Missing required fields',
+                    serverInfo: {
+                        nodeEnv: process.env.NODE_ENV || 'development',
+                        version: '1.0.0'
+                    }
+                }
+            };
+            
+            return res.status(400).json(errorResponse);
+        }
+        
+        log.debug('Creating messenger instance for platform', { platform });
+        const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        
+        log.debug('Attempting to send one-time notification...');
+        const startTime = Date.now();
+        const result = await messengerInstance.sendOneTimeNotification(userId, message, notificationType);
+        const duration = Date.now() - startTime;
+        
+        log.success('One-time notification sent successfully', {
+            result,
+            duration: `${duration}ms`,
+            platform,
+            userId,
+            notificationType,
+            messageLength: message.length
+        });
+        
+        log.info('=== SEND ONE-TIME NOTIFICATION API REQUEST END ===');
+        
+        const successResponse = { 
+            success: true, 
+            result,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                notificationType: notificationType,
+                messageLength: message.length,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
+    } catch (error) {
+        log.error('=== SEND ONE-TIME NOTIFICATION API ERROR ===', error, {
+            requestBody: req.body,
+            userId: req.body.userId,
+            platform: req.body.platform
+        });
+        
+        const errorResponse = { 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
+    }
+});
+
 // Get conversations
 app.get('/api/conversations', async (req, res) => {
     log.info('=== GET CONVERSATIONS API REQUEST START ===');
-    const { platform = 'messenger' } = req.query;
+        const { platform = 'messenger' } = req.query;
     log.debug('Platform requested', { platform });
-    
+        
     try {
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
         log.debug('Messenger instance created for platform', { platform });
@@ -772,11 +1464,11 @@ app.get('/api/conversations', async (req, res) => {
 // Get user profile
 app.get('/api/user/:userId', async (req, res) => {
     log.info('=== GET USER PROFILE API REQUEST START ===');
-    const { userId } = req.params;
-    const { platform = 'messenger' } = req.query;
-    
+        const { userId } = req.params;
+        const { platform = 'messenger' } = req.query;
+        
     log.debug('Request parameters', { userId, platform });
-    
+        
     try {
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
         log.debug('Messenger instance created for platform', { platform });
@@ -881,22 +1573,52 @@ app.get('/health', (req, res) => {
 // Root endpoint
 app.get('/', (req, res) => {
     const rootData = {
-        message: 'Facebook Messenger Platform API Server',
-        version: '1.0.0',
+        message: 'Facebook Messenger Platform API Server - v23.0 Enhanced',
+        version: '2.0.0',
+        apiVersion: 'v23.0',
+        features: [
+            'Enhanced Logging System',
+            'Browser Console Integration',
+            'Performance Monitoring',
+            'v23.0 API Features'
+        ],
         endpoints: {
             webhook: '/webhook',
+            // Core messaging endpoints
             sendMessage: '/api/send-message',
             sendImage: '/api/send-image',
+            // New v23.0 template endpoints
+            sendGenericTemplate: '/api/send-generic-template',
+            sendListTemplate: '/api/send-list-template',
+            sendButtonTemplate: '/api/send-button-template',
+            sendQuickReply: '/api/send-quick-reply',
+            // New v23.0 feature endpoints
+            sendReaction: '/api/send-reaction',
+            sendNotification: '/api/send-notification',
+            getInsights: '/api/insights',
+            // Data retrieval endpoints
             conversations: '/api/conversations',
             userProfile: '/api/user/:userId',
+            // Utility endpoints
             health: '/health'
+        },
+        v23Features: {
+            'Generic Template': 'Rich card-based messaging with images and buttons',
+            'List Template': 'Vertical list layout for multiple items',
+            'Enhanced Button Templates': 'Webview height ratios and fallback URLs',
+            'Quick Reply Images': 'Visual quick reply options',
+            'Reactions': 'Message reaction support',
+            'One-time Notifications': 'Non-24/7 messaging capabilities',
+            'Page Insights': 'Advanced analytics and metrics',
+            'Reusable Attachments': 'Optimized media handling'
         },
         _logging: {
             timestamp: new Date().toISOString(),
             requestId: Date.now().toString(),
             serverInfo: {
                 nodeEnv: process.env.NODE_ENV || 'development',
-                version: '1.0.0'
+                version: '2.0.0',
+                apiVersion: 'v23.0'
             }
         }
     };

@@ -1,11 +1,14 @@
-# Facebook Messenger Platform API - Express.js Integration
+# Facebook Messenger Platform API v23.0 - Express.js Integration
 
-A complete Express.js implementation for integrating with Facebook Messenger Platform and Instagram Platform APIs. This project provides a robust foundation for building chatbots and automated messaging systems with **comprehensive logging and debugging capabilities**.
+A complete Express.js implementation for integrating with Facebook Messenger Platform API v23.0 and Instagram Platform APIs. This project provides a robust foundation for building chatbots and automated messaging systems with **comprehensive logging and debugging capabilities**.
 
 ## 🚀 Features
 
 - **Webhook Integration**: Handle incoming messages from Facebook Messenger and Instagram
-- **Message Sending**: Send text, images, quick replies, and button templates
+- **Enhanced Messaging**: Send text, images, quick replies, and advanced templates
+- **v23.0 API Support**: Latest Facebook Messenger Platform features and capabilities
+- **Rich Templates**: Generic, List, Button, and Quick Reply templates with enhanced options
+- **Advanced Features**: Reactions, one-time notifications, page insights, and reusable attachments
 - **User Management**: Get user profiles and conversation history
 - **Platform Support**: Both Facebook Messenger and Instagram
 - **RESTful API**: Clean endpoints for manual message sending
@@ -14,6 +17,25 @@ A complete Express.js implementation for integrating with Facebook Messenger Pla
 - **Security**: Webhook verification and request signature validation
 - **Performance Monitoring**: Response time tracking and metrics
 - **Browser Integration**: Client-side logging utilities for debugging
+
+## 📱 v23.0 New Features
+
+### Enhanced Templates
+- **Generic Template**: Rich card-based messaging with images, buttons, and default actions
+- **List Template**: Vertical list layout for multiple items with compact styling
+- **Enhanced Button Templates**: Webview height ratios, messenger extensions, and fallback URLs
+- **Quick Reply Images**: Visual quick reply options for better user experience
+
+### Advanced Messaging
+- **Reactions**: Send message reactions (👍 👎 ❤️ 😂 😮 😢 😡)
+- **One-time Notifications**: Non-24/7 messaging capabilities for important updates
+- **Reusable Attachments**: Optimized media handling with attachment reuse
+- **Enhanced Webviews**: Better webview integration with height controls
+
+### Analytics & Insights
+- **Page Insights**: Advanced analytics and metrics for message performance
+- **Custom Metrics**: Configurable insight metrics (messages_received, messages_sent, etc.)
+- **Performance Tracking**: Detailed response time and operation monitoring
 
 ## 📊 Enhanced Logging System
 
@@ -99,115 +121,27 @@ A complete Express.js implementation for integrating with Facebook Messenger Pla
 # Development mode with auto-reload
 npm run dev
 
-# Verbose logging mode (shows all debug info)
-npm run dev:verbose
-
 # Production mode
 npm start
+
+# Verbose logging mode
+npm run dev:verbose
 ```
 
-### Log Management
+### Enhanced Bot Commands
 
-```bash
-# View real-time logs
-npm run logs:watch
+The bot now supports more sophisticated commands:
 
-# Clear logs
-npm run logs:clear
-
-# Check log file sizes
-ls -la logs/
-```
-
-### Browser Console Logging
-
-Include the browser logging utility in your HTML:
-
-```html
-<script src="browser-logging.js"></script>
-```
-
-Access logging utilities:
-
-```javascript
-// Get logger status
-const status = window.messengerLoggerUtils.getStatus();
-
-// Clear logs
-window.messengerLoggerUtils.clearLogs();
-
-// Export logs
-window.messengerLoggerUtils.exportLogs();
-
-// Toggle logging
-window.messengerLoggerUtils.setEnabled(false);
-```
-
-## 📱 Message Types Supported
-
-### Text Messages
-```javascript
-await messenger.sendTextMessage(userId, "Hello World!");
-```
-
-### Images
-```javascript
-await messenger.sendImage(userId, "https://example.com/image.jpg");
-```
-
-### Quick Replies
-```javascript
-const quickReplies = [
-  {
-    content_type: 'text',
-    title: 'Option 1',
-    payload: 'OPTION_1'
-  },
-  {
-    content_type: 'text',
-    title: 'Option 2',
-    payload: 'OPTION_2'
-  }
-];
-
-await messenger.sendQuickReply(userId, "Choose an option:", quickReplies);
-```
-
-### Button Templates
-```javascript
-const buttons = [
-  {
-    type: 'web_url',
-    url: 'https://example.com',
-    title: 'Visit Website'
-  },
-  {
-    type: 'postback',
-    title: 'Get Started',
-    payload: 'GET_STARTED'
-  }
-];
-
-await messenger.sendButtonTemplate(userId, "Here are your options:", buttons);
-```
-
-### Typing Indicators
-```javascript
-// Show typing indicator
-await messenger.sendTypingIndicator(userId, true);
-
-// Hide typing indicator
-await messenger.sendTypingIndicator(userId, false);
-```
-
-## 🔄 Webhook Processing
-
-The server automatically processes incoming messages and responds based on content:
-
-- **"hello" or "hi"**: Sends greeting message
-- **"help"**: Sends quick reply options
-- **"button"**: Sends button template
-- **Other messages**: Sends default response
+- **"hello" or "hi" or "hey"**: Enhanced greeting with follow-up quick replies
+- **"help" or "support"**: Comprehensive help with 4 quick reply options
+- **"button" or "template"**: Enhanced button template with webview features
+- **"list" or "menu"**: New list template with rich content
+- **"generic" or "cards"**: Generic template with feature cards
+- **"insights" or "analytics"**: Page insights and metrics
+- **"reaction" or "emoji"**: Reaction information
+- **"notification" or "alert"**: One-time notification demo
+- **"version" or "api"**: API version information
+- **Attachments**: Enhanced handling of images, videos, audio, and files
 
 ## 🧪 Testing
 
@@ -243,24 +177,57 @@ Open `test-page.html` in your browser to test:
 # Test health endpoint
 curl http://localhost:3000/health
 
-# Test message sending (replace with actual userId)
-curl -X POST http://localhost:3000/api/send-message \
+# Test new v23.0 endpoints
+curl -X POST http://localhost:3000/api/send-generic-template \
   -H "Content-Type: application/json" \
-  -d '{"userId":"test_user","message":"Hello!"}'
+  -d '{"userId":"test_user","elements":[{"title":"Test","subtitle":"Description"}]}'
+
+# Test list template
+curl -X POST http://localhost:3000/api/send-list-template \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"test_user","elements":[{"title":"Item 1","subtitle":"Description"}]}'
+
+# Test page insights
+curl http://localhost:3000/api/insights?metrics=messages_received,messages_sent
 ```
 
 ## 📚 API Reference
+
+### Core Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/webhook` | POST | Facebook webhook for receiving messages |
+| `/api/send-message` | POST | Send text message |
+| `/api/send-image` | POST | Send image message |
+| `/api/send-quick-reply` | POST | Send quick reply message |
+| `/api/send-button-template` | POST | Send button template |
+
+### New v23.0 Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/send-generic-template` | POST | Send generic template (rich cards) |
+| `/api/send-list-template` | POST | Send list template (vertical layout) |
+| `/api/send-reaction` | POST | Send message reaction |
+| `/api/send-notification` | POST | Send one-time notification |
+| `/api/insights` | GET | Get page insights and metrics |
 
 ### Messenger Class Methods
 
 | Method | Description | Parameters |
 |--------|-------------|------------|
 | `sendTextMessage()` | Send text message | userId, message |
-| `sendImage()` | Send image | userId, imageUrl |
-| `sendQuickReply()` | Send quick reply | userId, message, quickReplies |
-| `sendButtonTemplate()` | Send button template | userId, text, buttons |
-| `getUserProfile()` | Get user profile | userId |
-| `getConversations()` | Get conversations | - |
+| `sendImage()` | Send image with reusable attachment | userId, imageUrl |
+| `sendQuickReply()` | Send quick reply with image support | userId, message, quickReplies |
+| `sendButtonTemplate()` | Send button template with webview features | userId, text, buttons |
+| `sendGenericTemplate()` | Send generic template (new v23.0) | userId, elements |
+| `sendListTemplate()` | Send list template (new v23.0) | userId, elements, buttons |
+| `sendReaction()` | Send reaction (new v23.0) | userId, messageId, reaction |
+| `getPageInsights()` | Get page insights (new v23.0) | metrics |
+| `sendOneTimeNotification()` | Send one-time notification (new v23.0) | userId, message, type |
+| `getUserProfile()` | Get user profile with enhanced fields | userId |
+| `getConversations()` | Get conversations with v23.0 fields | - |
 | `markAsSeen()` | Mark message as seen | userId |
 | `sendTypingIndicator()` | Show/hide typing | userId, typing |
 
@@ -279,7 +246,8 @@ All API responses now include a `_logging` object:
     "platform": "messenger",
     "serverInfo": {
       "nodeEnv": "development",
-      "version": "1.0.0"
+      "version": "2.0.0",
+      "apiVersion": "v23.0"
     }
   }
 }
@@ -312,6 +280,60 @@ The application includes comprehensive error handling:
 6. **Set appropriate log levels for production**
 
 ## 📖 Examples
+
+### Generic Template (v23.0)
+```javascript
+const elements = [
+    {
+        title: 'Feature Title',
+        subtitle: 'Feature description',
+        image_url: 'https://example.com/image.jpg',
+        default_action: {
+            type: 'web_url',
+            url: 'https://example.com/feature'
+        },
+        buttons: [
+            {
+                type: 'web_url',
+                title: 'Learn More',
+                url: 'https://example.com/feature'
+            }
+        ]
+    }
+];
+
+await messenger.sendGenericTemplate(userId, elements);
+```
+
+### List Template (v23.0)
+```javascript
+const elements = [
+    {
+        title: 'Item 1',
+        subtitle: 'Description 1',
+        image_url: 'https://example.com/image1.jpg'
+    }
+];
+
+const buttons = [
+    {
+        type: 'web_url',
+        title: 'View All',
+        url: 'https://example.com/all'
+    }
+];
+
+await messenger.sendListTemplate(userId, elements, buttons);
+```
+
+### Page Insights (v23.0)
+```javascript
+const insights = await messenger.getPageInsights([
+    'messages_received',
+    'messages_sent',
+    'messages_delivered'
+]);
+```
 
 ### Custom Logging
 ```javascript
@@ -346,7 +368,7 @@ This project is licensed under the MIT License.
 
 ## 🔗 Resources
 
-- [Facebook Messenger Platform Documentation](https://developers.facebook.com/docs/messenger-platform/)
+- [Facebook Messenger Platform v23.0 Documentation](https://developers.facebook.com/docs/messenger-platform/)
 - [Instagram Platform Documentation](https://developers.facebook.com/docs/instagram-api/)
 - [Express.js Documentation](https://expressjs.com/)
 - [Node.js Documentation](https://nodejs.org/)
@@ -370,6 +392,16 @@ For issues and questions:
 - **File Logging**: Persistent log storage with rotation
 - **Test Page**: Interactive testing interface for all features
 
+### v23.0 API Support (v2.0)
+- **Generic Templates**: Rich card-based messaging with enhanced options
+- **List Templates**: Vertical list layouts with compact styling
+- **Enhanced Button Templates**: Webview controls and fallback URLs
+- **Quick Reply Images**: Visual quick reply options
+- **Reactions**: Message reaction support
+- **One-time Notifications**: Non-24/7 messaging capabilities
+- **Page Insights**: Advanced analytics and metrics
+- **Reusable Attachments**: Optimized media handling
+
 ---
 
-**Happy Coding! 🎉**
+**Happy Coding with v23.0! 🎉**

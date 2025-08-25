@@ -13,7 +13,7 @@ class Messenger {
         console.log('Access Token:', accessToken ? 'Set (first 10 chars: ' + accessToken.substring(0, 10) + '...)' : 'NOT SET');
         
         this.apiDomain = 'graph.facebook.com';
-        this.apiVersion = '18.0';
+        this.apiVersion = '23.0'; // Updated to latest version
         this.apiUrl = `https://${this.apiDomain}/v${this.apiVersion}`;
         this.platform = platform;
         this.pageId = pageId;
@@ -42,37 +42,24 @@ class Messenger {
         console.log('Platform:', this.platform);
         console.log('Page ID:', this.pageId);
         
-        // Log parameters without sensitive data
-        const logParams = { ...parameters };
-        if (logParams.access_token) {
-            logParams.access_token = logParams.access_token.substring(0, 10) + '...';
-        }
-        console.log('Request parameters:', logParams);
-        
-        parameters['access_token'] = this.accessToken;
-        const queryString = new URLSearchParams(parameters);
-        
-        const url = method === 'GET' 
-            ? `${this.apiUrl}/${api}?${queryString.toString()}`
-            : `${this.apiUrl}/${api}`;
-
-        console.log('Full API URL:', url);
-        
+        const url = `${this.apiUrl}${api}`;
         const options = {
-            method,
+            method: method,
             headers: {
                 'Content-Type': 'application/json'
             }
         };
-
-        if (method === 'POST') {
-            options.body = JSON.stringify(parameters);
-            console.log('Request body:', JSON.stringify(parameters, null, 2));
-        }
-
-        console.log('Request options:', {
-            method: options.method,
-            headers: options.headers,
+        
+        // Add access token to parameters
+        const params = {
+            access_token: this.accessToken,
+            ...parameters
+        };
+        
+        console.log('Request parameters:', {
+            hasAccessToken: !!params.access_token,
+            accessTokenPreview: params.access_token ? params.access_token.substring(0, 10) + '...' : 'None',
+            otherParams: Object.keys(params).filter(key => key !== 'access_token'),
             hasBody: !!options.body
         });
 
@@ -118,281 +105,415 @@ class Messenger {
             return data;
         } catch (error) {
             console.error('❌ API Request Error:', error.message);
-            console.error('Error type:', error.constructor.name);
             console.error('Error stack:', error.stack);
             console.error('Error details:', {
                 name: error.name,
                 code: error.code,
-                status: error.status
+                status: error.status,
+                statusCode: error.statusCode
             });
-            console.log('=== API REQUEST END WITH ERROR ===');
             throw error;
         }
     }
 
-    // Get conversations for the page
-    async getConversations() {
-        console.log('=== GET CONVERSATIONS START ===');
-        console.log('Fetching conversations for platform:', this.platform);
-        
-        try {
-            const result = await this.#sendApiRequest(`${this.pageId}/conversations`, {
-                'platform': this.platform,
-                'fields': 'id,participants,updated_time'
-            });
-            
-            console.log('✅ Conversations retrieved successfully');
-            console.log('Result structure:', result ? Object.keys(result) : 'No result');
-            console.log('=== GET CONVERSATIONS END ===');
-            
-            return result;
-        } catch (error) {
-            console.error('❌ Failed to get conversations:', error.message);
-            console.log('=== GET CONVERSATIONS END WITH ERROR ===');
-            throw error;
-        }
-    }
-
-    // Get messages from a specific conversation
-    async getConversationMessages(conversationId) {
-        console.log('=== GET CONVERSATION MESSAGES START ===');
-        console.log('Fetching messages for conversation:', conversationId);
-        
-        try {
-            const result = await this.#sendApiRequest(`${conversationId}`, {
-                'fields': 'id,messages{id,from,to,message,created_time}'
-            });
-            
-            console.log('✅ Conversation messages retrieved successfully');
-            console.log('Result structure:', result ? Object.keys(result) : 'No result');
-            console.log('=== GET CONVERSATION MESSAGES END ===');
-            
-            return result;
-        } catch (error) {
-            console.error('❌ Failed to get conversation messages:', error.message);
-            console.log('=== GET CONVERSATION MESSAGES END WITH ERROR ===');
-            throw error;
-        }
-    }
-
-    // Get detailed information about a specific message
-    async getMessageDetails(messageId) {
-        console.log('=== GET MESSAGE DETAILS START ===');
-        console.log('Fetching details for message:', messageId);
-        
-        try {
-            const result = await this.#sendApiRequest(`${messageId}`, {
-                'fields': 'id,to,from,message,created_time,attachments'
-            });
-            
-            console.log('✅ Message details retrieved successfully');
-            console.log('Result structure:', result ? Object.keys(result) : 'No result');
-            console.log('=== GET MESSAGE DETAILS END ===');
-            
-            return result;
-        } catch (error) {
-            console.error('❌ Failed to get message details:', error.message);
-            console.log('=== GET MESSAGE DETAILS END WITH ERROR ===');
-            throw error;
-        }
-    }
-
-    // Send a text message
+    // Send text message
     async sendTextMessage(userId, message) {
-        console.log('=== SEND TEXT MESSAGE START ===');
-        console.log('Sending text message to user:', userId);
-        console.log('Message content:', message);
-        console.log('Message length:', message.length);
-        console.log('Platform:', this.platform);
+        console.log('=== SEND TEXT MESSAGE ===');
+        console.log('User ID:', userId);
+        console.log('Message:', message);
+        
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            message: { text: message },
+            messaging_type: 'RESPONSE' // Updated to use proper messaging type
+        };
+        
+        console.log('API call parameters:', parameters);
         
         try {
-            const result = await this.#sendApiRequest(`${this.pageId}/messages`, {
-                'recipient': { 'id': userId },
-                'messaging_type': 'RESPONSE',
-                'message': { 'text': message }
-            }, 'POST');
-            
-            console.log('✅ Text message sent successfully');
-            console.log('API response:', result);
-            console.log('=== SEND TEXT MESSAGE END ===');
-            
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ Text message sent successfully:', result);
             return result;
         } catch (error) {
             console.error('❌ Failed to send text message:', error.message);
-            console.log('=== SEND TEXT MESSAGE END WITH ERROR ===');
             throw error;
         }
     }
 
-    // Send an image message
+    // Send image message
     async sendImage(userId, imageUrl) {
-        console.log('=== SEND IMAGE MESSAGE START ===');
-        console.log('Sending image message to user:', userId);
+        console.log('=== SEND IMAGE MESSAGE ===');
+        console.log('User ID:', userId);
         console.log('Image URL:', imageUrl);
-        console.log('Platform:', this.platform);
         
-        try {
-            const result = await this.#sendApiRequest(`${this.pageId}/messages`, {
-                'recipient': { 'id': userId },
-                'messaging_type': 'RESPONSE',
-                'message': {
-                    'attachment': {
-                        'type': 'image',
-                        'payload': {
-                            'url': imageUrl
-                        }
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            message: {
+                attachment: {
+                    type: 'image',
+                    payload: {
+                        url: imageUrl,
+                        is_reusable: true // New v23.0 feature for reusable attachments
                     }
                 }
-            }, 'POST');
-            
-            console.log('✅ Image message sent successfully');
-            console.log('API response:', result);
-            console.log('=== SEND IMAGE MESSAGE END ===');
-            
+            },
+            messaging_type: 'RESPONSE'
+        };
+        
+        console.log('API call parameters:', parameters);
+        
+        try {
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ Image message sent successfully:', result);
             return result;
         } catch (error) {
             console.error('❌ Failed to send image message:', error.message);
-            console.log('=== SEND IMAGE MESSAGE END WITH ERROR ===');
             throw error;
         }
     }
 
-    // Send a quick reply message
+    // Send quick reply
     async sendQuickReply(userId, message, quickReplies) {
-        console.log('=== SEND QUICK REPLY START ===');
-        console.log('Sending quick reply to user:', userId);
-        console.log('Message content:', message);
-        console.log('Quick replies count:', quickReplies.length);
+        console.log('=== SEND QUICK REPLY ===');
+        console.log('User ID:', userId);
+        console.log('Message:', message);
         console.log('Quick replies:', quickReplies);
-        console.log('Platform:', this.platform);
+        
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            message: {
+                text: message,
+                quick_replies: quickReplies.map(reply => ({
+                    content_type: reply.content_type,
+                    title: reply.title,
+                    payload: reply.payload,
+                    image_url: reply.image_url // New v23.0 feature for quick reply images
+                }))
+            },
+            messaging_type: 'RESPONSE'
+        };
+        
+        console.log('API call parameters:', parameters);
         
         try {
-            const result = await this.#sendApiRequest(`${this.pageId}/messages`, {
-                'recipient': { 'id': userId },
-                'messaging_type': 'RESPONSE',
-                'message': {
-                    'text': message,
-                    'quick_replies': quickReplies
-                }
-            }, 'POST');
-            
-            console.log('✅ Quick reply sent successfully');
-            console.log('API response:', result);
-            console.log('=== SEND QUICK REPLY END ===');
-            
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ Quick reply sent successfully:', result);
             return result;
         } catch (error) {
             console.error('❌ Failed to send quick reply:', error.message);
-            console.log('=== SEND QUICK REPLY END WITH ERROR ===');
             throw error;
         }
     }
 
-    // Send a button template
+    // Send button template
     async sendButtonTemplate(userId, text, buttons) {
-        console.log('=== SEND BUTTON TEMPLATE START ===');
-        console.log('Sending button template to user:', userId);
-        console.log('Template text:', text);
-        console.log('Buttons count:', buttons.length);
+        console.log('=== SEND BUTTON TEMPLATE ===');
+        console.log('User ID:', userId);
+        console.log('Text:', text);
         console.log('Buttons:', buttons);
-        console.log('Platform:', this.platform);
         
-        try {
-            const result = await this.#sendApiRequest(`${this.pageId}/messages`, {
-                'recipient': { 'id': userId },
-                'messaging_type': 'RESPONSE',
-                'message': {
-                    'attachment': {
-                        'type': 'template',
-                        'payload': {
-                            'template_type': 'button',
-                            'text': text,
-                            'buttons': buttons
-                        }
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            message: {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'button',
+                        text: text,
+                        buttons: buttons.map(button => ({
+                            type: button.type,
+                            title: button.title,
+                            url: button.url,
+                            payload: button.payload,
+                            webview_height_ratio: button.webview_height_ratio || 'full', // New v23.0 feature
+                            messenger_extensions: button.messenger_extensions || false, // New v23.0 feature
+                            fallback_url: button.fallback_url // New v23.0 feature
+                        }))
                     }
                 }
-            }, 'POST');
-            
-            console.log('✅ Button template sent successfully');
-            console.log('API response:', result);
-            console.log('=== SEND BUTTON TEMPLATE END ===');
-            
+            },
+            messaging_type: 'RESPONSE'
+        };
+        
+        console.log('API call parameters:', parameters);
+        
+        try {
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ Button template sent successfully:', result);
             return result;
         } catch (error) {
             console.error('❌ Failed to send button template:', error.message);
-            console.log('=== SEND BUTTON TEMPLATE END WITH ERROR ===');
             throw error;
         }
     }
 
-    // Get user profile information
-    async getUserProfile(userId) {
-        console.log('=== GET USER PROFILE START ===');
-        console.log('Fetching profile for user:', userId);
-        console.log('Platform:', this.platform);
+    // Send generic template (new v23.0 feature)
+    async sendGenericTemplate(userId, elements) {
+        console.log('=== SEND GENERIC TEMPLATE ===');
+        console.log('User ID:', userId);
+        console.log('Elements:', elements);
+        
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            message: {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'generic',
+                        elements: elements.map(element => ({
+                            title: element.title,
+                            subtitle: element.subtitle,
+                            image_url: element.image_url,
+                            default_action: element.default_action,
+                            buttons: element.buttons?.map(button => ({
+                                type: button.type,
+                                title: button.title,
+                                url: button.url,
+                                payload: button.payload,
+                                webview_height_ratio: button.webview_height_ratio || 'full',
+                                messenger_extensions: button.messenger_extensions || false,
+                                fallback_url: button.fallback_url
+                            }))
+                        }))
+                    }
+                }
+            },
+            messaging_type: 'RESPONSE'
+        };
+        
+        console.log('API call parameters:', parameters);
         
         try {
-            const result = await this.#sendApiRequest(`${userId}`, {
-                'fields': 'id,name,first_name,last_name,profile_pic'
-            });
-            
-            console.log('✅ User profile retrieved successfully');
-            console.log('Profile data keys:', result ? Object.keys(result) : 'No profile data');
-            console.log('=== GET USER PROFILE END ===');
-            
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ Generic template sent successfully:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Failed to send generic template:', error.message);
+            throw error;
+        }
+    }
+
+    // Send list template (new v23.0 feature)
+    async sendListTemplate(userId, elements, buttons = null) {
+        console.log('=== SEND LIST TEMPLATE ===');
+        console.log('User ID:', userId);
+        console.log('Elements:', elements);
+        console.log('Buttons:', buttons);
+        
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            message: {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'list',
+                        top_element_style: 'compact',
+                        elements: elements.map(element => ({
+                            title: element.title,
+                            subtitle: element.subtitle,
+                            image_url: element.image_url,
+                            default_action: element.default_action,
+                            buttons: element.buttons?.map(button => ({
+                                type: button.type,
+                                title: button.title,
+                                url: button.url,
+                                payload: button.payload
+                            }))
+                        })),
+                        buttons: buttons?.map(button => ({
+                            type: button.type,
+                            title: button.title,
+                            url: button.url,
+                            payload: button.payload
+                        }))
+                    }
+                }
+            },
+            messaging_type: 'RESPONSE'
+        };
+        
+        console.log('API call parameters:', parameters);
+        
+        try {
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ List template sent successfully:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Failed to send list template:', error.message);
+            throw error;
+        }
+    }
+
+    // Get user profile
+    async getUserProfile(userId) {
+        console.log('=== GET USER PROFILE ===');
+        console.log('User ID:', userId);
+        
+        const api = `/${userId}`;
+        const parameters = {
+            fields: 'id,name,first_name,last_name,profile_pic,locale,timezone,gender,is_payment_enabled,last_ad_referral' // Updated fields for v23.0
+        };
+        
+        console.log('API call parameters:', parameters);
+        
+        try {
+            const result = await this.#sendApiRequest(api, parameters, 'GET');
+            console.log('✅ User profile retrieved successfully:', result);
             return result;
         } catch (error) {
             console.error('❌ Failed to get user profile:', error.message);
-            console.log('=== GET USER PROFILE END WITH ERROR ===');
+            throw error;
+        }
+    }
+
+    // Get conversations
+    async getConversations() {
+        console.log('=== GET CONVERSATIONS ===');
+        
+        const api = `/${this.pageId}/conversations`;
+        const parameters = {
+            fields: 'id,snippet,updated_time,message_count,unread_count,can_reply,is_subscribed' // Updated fields for v23.0
+        };
+        
+        console.log('API call parameters:', parameters);
+        
+        try {
+            const result = await this.#sendApiRequest(api, parameters, 'GET');
+            console.log('✅ Conversations retrieved successfully:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Failed to get conversations:', error.message);
             throw error;
         }
     }
 
     // Mark message as seen
     async markAsSeen(userId) {
-        console.log('=== MARK AS SEEN START ===');
-        console.log('Marking message as seen for user:', userId);
-        console.log('Platform:', this.platform);
+        console.log('=== MARK AS SEEN ===');
+        console.log('User ID:', userId);
+        
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            sender_action: 'mark_seen'
+        };
+        
+        console.log('API call parameters:', parameters);
         
         try {
-            const result = await this.#sendApiRequest(`${this.pageId}/messages`, {
-                'recipient': { 'id': userId },
-                'sender_action': 'mark_seen'
-            }, 'POST');
-            
-            console.log('✅ Message marked as seen successfully');
-            console.log('API response:', result);
-            console.log('=== MARK AS SEEN END ===');
-            
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ Message marked as seen successfully:', result);
             return result;
         } catch (error) {
             console.error('❌ Failed to mark message as seen:', error.message);
-            console.log('=== MARK AS SEEN END WITH ERROR ===');
             throw error;
         }
     }
 
     // Send typing indicator
-    async sendTypingIndicator(userId, typing = true) {
-        console.log('=== TYPING INDICATOR START ===');
-        console.log('Setting typing indicator for user:', userId);
-        console.log('Typing state:', typing ? 'ON' : 'OFF');
-        console.log('Platform:', this.platform);
+    async sendTypingIndicator(userId, typing) {
+        console.log('=== SEND TYPING INDICATOR ===');
+        console.log('User ID:', userId);
+        console.log('Typing:', typing);
+        
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            sender_action: typing ? 'typing_on' : 'typing_off'
+        };
+        
+        console.log('API call parameters:', parameters);
         
         try {
-            const result = await this.#sendApiRequest(`${this.pageId}/messages`, {
-                'recipient': { 'id': userId },
-                'sender_action': typing ? 'typing_on' : 'typing_off'
-            }, 'POST');
-            
-            console.log('✅ Typing indicator set successfully');
-            console.log('API response:', result);
-            console.log('=== TYPING INDICATOR END ===');
-            
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ Typing indicator sent successfully:', result);
             return result;
         } catch (error) {
-            console.error('❌ Failed to set typing indicator:', error.message);
-            console.log('=== TYPING INDICATOR END WITH ERROR ===');
+            console.error('❌ Failed to send typing indicator:', error.message);
+            throw error;
+        }
+    }
+
+    // Send reaction (new v23.0 feature)
+    async sendReaction(userId, messageId, reaction) {
+        console.log('=== SEND REACTION ===');
+        console.log('User ID:', userId);
+        console.log('Message ID:', messageId);
+        console.log('Reaction:', reaction);
+        
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            message: {
+                reaction: reaction
+            },
+            messaging_type: 'RESPONSE'
+        };
+        
+        console.log('API call parameters:', parameters);
+        
+        try {
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ Reaction sent successfully:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Failed to send reaction:', error.message);
+            throw error;
+        }
+    }
+
+    // Get page insights (new v23.0 feature)
+    async getPageInsights(metrics = ['messages_received', 'messages_sent']) {
+        console.log('=== GET PAGE INSIGHTS ===');
+        console.log('Metrics:', metrics);
+        
+        const api = `/${this.pageId}/insights`;
+        const parameters = {
+            metric: metrics.join(','),
+            period: 'day_28'
+        };
+        
+        console.log('API call parameters:', parameters);
+        
+        try {
+            const result = await this.#sendApiRequest(api, parameters, 'GET');
+            console.log('✅ Page insights retrieved successfully:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Failed to get page insights:', error.message);
+            throw error;
+        }
+    }
+
+    // Send one-time notification (new v23.0 feature)
+    async sendOneTimeNotification(userId, message, notificationType = 'REGULAR') {
+        console.log('=== SEND ONE-TIME NOTIFICATION ===');
+        console.log('User ID:', userId);
+        console.log('Message:', message);
+        console.log('Notification Type:', notificationType);
+        
+        const api = `/${this.pageId}/messages`;
+        const parameters = {
+            recipient: { id: userId },
+            message: { text: message },
+            messaging_type: 'MESSAGE_TAG',
+            tag: notificationType
+        };
+        
+        console.log('API call parameters:', parameters);
+        
+        try {
+            const result = await this.#sendApiRequest(api, parameters, 'POST');
+            console.log('✅ One-time notification sent successfully:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Failed to send one-time notification:', error.message);
             throw error;
         }
     }

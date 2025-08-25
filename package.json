@@ -1,7 +1,7 @@
 {
   "name": "messenger-api-express",
-  "version": "1.0.0",
-  "description": "Express.js implementation of Facebook Messenger Platform API integration with comprehensive logging",
+  "version": "2.0.0",
+  "description": "Express.js implementation of Facebook Messenger Platform API v23.0 integration with comprehensive logging",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -16,11 +16,14 @@
     "messenger",
     "facebook",
     "api",
+    "v23.0",
     "express",
     "nodejs",
     "chatbot",
     "logging",
-    "debugging"
+    "debugging",
+    "templates",
+    "insights"
   ],
   "author": "Your Name",
   "license": "MIT",

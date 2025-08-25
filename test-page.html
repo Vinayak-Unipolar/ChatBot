@@ -208,6 +208,13 @@
                     <option value="/">Root Endpoint (/)</option>
                     <option value="/api/send-message">Send Message (/api/send-message)</option>
                     <option value="/api/send-image">Send Image (/api/send-image)</option>
+                    <option value="/api/send-generic-template">Send Generic Template (/api/send-generic-template)</option>
+                    <option value="/api/send-list-template">Send List Template (/api/send-list-template)</option>
+                    <option value="/api/send-button-template">Send Button Template (/api/send-button-template)</option>
+                    <option value="/api/send-quick-reply">Send Quick Reply (/api/send-quick-reply)</option>
+                    <option value="/api/send-reaction">Send Reaction (/api/send-reaction)</option>
+                    <option value="/api/send-notification">Send Notification (/api/send-notification)</option>
+                    <option value="/api/insights">Get Page Insights (/api/insights)</option>
                     <option value="/api/conversations">Get Conversations (/api/conversations)</option>
                     <option value="/api/user/test123">Get User Profile (/api/user/:userId)</option>
                 </select>
@@ -261,6 +268,33 @@
                 <button class="btn btn-success" onclick="simulateWebhook('user_left')">👋 User Left</button>
             </div>
         </div>
+
+        <div class="section">
+            <h2>🚀 v23.0 Features Demo</h2>
+            <p>Test the latest Facebook Messenger Platform API v23.0 features:</p>
+            
+            <div class="form-group">
+                <label for="v23Feature">Select Feature to Test:</label>
+                <select id="v23Feature" onchange="updateV23Demo()">
+                    <option value="generic">Generic Template</option>
+                    <option value="list">List Template</option>
+                    <option value="reaction">Reactions</option>
+                    <option value="insights">Page Insights</option>
+                    <option value="notification">One-time Notification</option>
+                </select>
+            </div>
+
+            <div id="v23DemoContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+
+            <div class="log-controls">
+                <button class="btn btn-success" onclick="testV23Feature()">🧪 Test v23.0 Feature</button>
+                <button class="btn btn-warning" onclick="clearV23Response()">🗑️ Clear Response</button>
+            </div>
+
+            <div id="v23Response" class="response" style="display: none;"></div>
+        </div>
     </div>
 
     <!-- Include the browser logging utility -->
@@ -273,6 +307,9 @@
             
             // Set default log level
             document.getElementById('logLevel').value = 'INFO';
+            
+            // Initialize v23.0 demo
+            updateV23Demo();
         });
 
         // Update logger status display
@@ -469,6 +506,275 @@
             if (window.messengerLogger) {
                 window.messengerLogger.webhookEvent(eventType, webhookData);
             }
+        }
+
+        // Update v23.0 demo content based on selection
+        function updateV23Demo() {
+            const feature = document.getElementById('v23Feature').value;
+            const contentDiv = document.getElementById('v23DemoContent');
+            
+            let content = '';
+            
+            switch(feature) {
+                case 'generic':
+                    content = `
+                        <h4>Generic Template Demo</h4>
+                        <p>Test rich card-based messaging with images and buttons:</p>
+                        <div class="form-group">
+                            <label for="genericUserId">User ID:</label>
+                            <input type="text" id="genericUserId" value="test_user_123" placeholder="Enter user ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="genericElements">Elements (JSON):</label>
+                            <textarea id="genericElements" rows="8">[
+  {
+    "title": "🚀 Feature 1",
+    "subtitle": "Amazing feature description",
+    "image_url": "https://picsum.photos/300/200?random=1",
+    "default_action": {
+      "type": "web_url",
+      "url": "https://example.com/feature1"
+    },
+    "buttons": [
+      {
+        "type": "web_url",
+        "title": "Learn More",
+        "url": "https://example.com/feature1"
+      },
+      {
+        "type": "postback",
+        "title": "Try It",
+        "payload": "TRY_FEATURE_1"
+      }
+    ]
+  }
+]</textarea>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'list':
+                    content = `
+                        <h4>List Template Demo</h4>
+                        <p>Test vertical list layout for multiple items:</p>
+                        <div class="form-group">
+                            <label for="listUserId">User ID:</label>
+                            <input type="text" id="listUserId" value="test_user_123" placeholder="Enter user ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="listElements">Elements (JSON):</label>
+                            <textarea id="listElements" rows="8">[
+  {
+    "title": "📚 Item 1",
+    "subtitle": "First item description",
+    "image_url": "https://picsum.photos/200/100?random=2"
+  },
+  {
+    "title": "⚡ Item 2",
+    "subtitle": "Second item description",
+    "image_url": "https://picsum.photos/200/100?random=3"
+  }
+]</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="listButtons">Buttons (JSON):</label>
+                            <textarea id="listButtons" rows="4">[
+  {
+    "type": "web_url",
+    "title": "View All",
+    "url": "https://example.com/all"
+  }
+]</textarea>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'reaction':
+                    content = `
+                        <h4>Reactions Demo</h4>
+                        <p>Test message reaction support:</p>
+                        <div class="form-group">
+                            <label for="reactionUserId">User ID:</label>
+                            <input type="text" id="reactionUserId" value="test_user_123" placeholder="Enter user ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="reactionMessageId">Message ID:</label>
+                            <input type="text" id="reactionMessageId" value="mid_123456789" placeholder="Enter message ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="reactionType">Reaction:</label>
+                            <select id="reactionType">
+                                <option value="👍">👍 Like</option>
+                                <option value="👎">👎 Dislike</option>
+                                <option value="❤️">❤️ Love</option>
+                                <option value="😂">😂 Haha</option>
+                                <option value="😮">😮 Wow</option>
+                                <option value="😢">😢 Sad</option>
+                                <option value="😡">😡 Angry</option>
+                            </select>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'insights':
+                    content = `
+                        <h4>Page Insights Demo</h4>
+                        <p>Test page analytics and metrics:</p>
+                        <div class="form-group">
+                            <label for="insightsMetrics">Metrics (comma-separated):</label>
+                            <input type="text" id="insightsMetrics" value="messages_received,messages_sent" placeholder="Enter metrics">
+                        </div>
+                        <p><small>Available metrics: messages_received, messages_sent, messages_delivered, messages_read</small></p>
+                    `;
+                    break;
+                    
+                case 'notification':
+                    content = `
+                        <h4>One-time Notification Demo</h4>
+                        <p>Test non-24/7 messaging capabilities:</p>
+                        <div class="form-group">
+                            <label for="notificationUserId">User ID:</label>
+                            <input type="text" id="notificationUserId" value="test_user_123" placeholder="Enter user ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="notificationMessage">Message:</label>
+                            <textarea id="notificationMessage" rows="3" placeholder="Enter notification message">�� This is a one-time notification from our enhanced v23.0 bot!</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="notificationType">Notification Type:</label>
+                            <select id="notificationType">
+                                <option value="REGULAR">REGULAR</option>
+                                <option value="CONFIRMED_EVENT_UPDATE">CONFIRMED_EVENT_UPDATE</option>
+                                <option value="POST_PURCHASE_UPDATE">POST_PURCHASE_UPDATE</option>
+                                <option value="ACCOUNT_UPDATE">ACCOUNT_UPDATE</option>
+                            </select>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            contentDiv.innerHTML = content;
+        }
+
+        // Test v23.0 feature
+        async function testV23Feature() {
+            const feature = document.getElementById('v23Feature').value;
+            const baseUrl = document.getElementById('apiUrl').value;
+            
+            try {
+                let url, method, body;
+                
+                switch(feature) {
+                    case 'generic':
+                        const genericUserId = document.getElementById('genericUserId').value;
+                        const genericElements = JSON.parse(document.getElementById('genericElements').value);
+                        
+                        url = baseUrl + '/api/send-generic-template';
+                        method = 'POST';
+                        body = {
+                            userId: genericUserId,
+                            elements: genericElements,
+                            platform: 'messenger'
+                        };
+                        break;
+                        
+                    case 'list':
+                        const listUserId = document.getElementById('listUserId').value;
+                        const listElements = JSON.parse(document.getElementById('listElements').value);
+                        const listButtons = JSON.parse(document.getElementById('listButtons').value);
+                        
+                        url = baseUrl + '/api/send-list-template';
+                        method = 'POST';
+                        body = {
+                            userId: listUserId,
+                            elements: listElements,
+                            buttons: listButtons,
+                            platform: 'messenger'
+                        };
+                        break;
+                        
+                    case 'reaction':
+                        const reactionUserId = document.getElementById('reactionUserId').value;
+                        const reactionMessageId = document.getElementById('reactionMessageId').value;
+                        const reactionType = document.getElementById('reactionType').value;
+                        
+                        url = baseUrl + '/api/send-reaction';
+                        method = 'POST';
+                        body = {
+                            userId: reactionUserId,
+                            messageId: reactionMessageId,
+                            reaction: reactionType,
+                            platform: 'messenger'
+                        };
+                        break;
+                        
+                    case 'insights':
+                        const insightsMetrics = document.getElementById('insightsMetrics').value;
+                        
+                        url = baseUrl + '/api/insights?metrics=' + encodeURIComponent(insightsMetrics);
+                        method = 'GET';
+                        body = null;
+                        break;
+                        
+                    case 'notification':
+                        const notificationUserId = document.getElementById('notificationUserId').value;
+                        const notificationMessage = document.getElementById('notificationMessage').value;
+                        const notificationType = document.getElementById('notificationType').value;
+                        
+                        url = baseUrl + '/api/send-notification';
+                        method = 'POST';
+                        body = {
+                            userId: notificationUserId,
+                            message: notificationMessage,
+                            notificationType: notificationType,
+                            platform: 'messenger'
+                        };
+                        break;
+                }
+                
+                // Log the request
+                if (window.messengerLogger) {
+                    window.messengerLogger.apiRequest(method, url, body);
+                }
+
+                const startTime = Date.now();
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                if (method === 'POST' && body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(url, options);
+                const duration = Date.now() - startTime;
+                const data = await response.json();
+
+                // Log the response
+                if (window.messengerLogger) {
+                    window.messengerLogger.apiResponse(method, url, response.status, data, duration);
+                }
+
+                // Display response
+                const responseDiv = document.getElementById('v23Response');
+                responseDiv.style.display = 'block';
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+
+                // Update logger status
+                updateLoggerStatus();
+
+            } catch (error) {
+                console.error('v23.0 feature test failed:', error);
+                alert('v23.0 feature test failed: ' + error.message);
+            }
+        }
+
+        // Clear v23.0 response
+        function clearV23Response() {
+            document.getElementById('v23Response').style.display = 'none';
         }
 
         // Auto-update status every 5 seconds
