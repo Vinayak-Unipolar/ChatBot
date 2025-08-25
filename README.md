@@ -1,6 +1,6 @@
 # Facebook Messenger Platform API - Express.js Integration
 
-A complete Express.js implementation for integrating with Facebook Messenger Platform and Instagram Platform APIs. This project provides a robust foundation for building chatbots and automated messaging systems.
+A complete Express.js implementation for integrating with Facebook Messenger Platform and Instagram Platform APIs. This project provides a robust foundation for building chatbots and automated messaging systems with **comprehensive logging and debugging capabilities**.
 
 ## 🚀 Features
 
@@ -9,8 +9,35 @@ A complete Express.js implementation for integrating with Facebook Messenger Pla
 - **User Management**: Get user profiles and conversation history
 - **Platform Support**: Both Facebook Messenger and Instagram
 - **RESTful API**: Clean endpoints for manual message sending
-- **Error Handling**: Comprehensive error handling and logging
+- **Enhanced Logging**: Comprehensive server-side and browser console logging
+- **Error Handling**: Detailed error tracking with stack traces and context
 - **Security**: Webhook verification and request signature validation
+- **Performance Monitoring**: Response time tracking and metrics
+- **Browser Integration**: Client-side logging utilities for debugging
+
+## 📊 Enhanced Logging System
+
+### Server-Side Logging
+- **Structured Logging**: Organized log levels (ERROR, WARN, INFO, DEBUG, TRACE)
+- **Timestamp Tracking**: ISO format timestamps for all operations
+- **Context Awareness**: Detailed context for errors and operations
+- **Performance Metrics**: Response time tracking for all API calls
+- **File Logging**: Automatic log file creation in `logs/` directory
+- **Color-Coded Output**: Visual distinction between log types
+
+### Browser Console Logging
+- **Client-Side Integration**: Automatic logging in browser console
+- **Styled Output**: Color-coded and organized log messages
+- **Session Tracking**: Unique session IDs for debugging
+- **Request Correlation**: Link server and client logs via request IDs
+- **Storage Management**: Session storage for log persistence
+- **Export Capabilities**: Download logs as JSON files
+
+### Response Logging
+- **Automatic Inclusion**: All API responses include `_logging` object
+- **Request Tracking**: Unique request IDs and timestamps
+- **Performance Data**: Response time and server information
+- **Debug Information**: Environment details and server status
 
 ## 📋 Prerequisites
 
@@ -39,29 +66,30 @@ A complete Express.js implementation for integrating with Facebook Messenger Pla
    INSTAGRAM_USERNAME=your_instagram_username
    PORT=3000
    NODE_ENV=development
+   LOG_LEVEL=INFO
    ```
 
 ## 🔧 Configuration
 
-### Facebook App Setup
-
-1. Go to [Facebook Developers](https://developers.facebook.com/)
-2. Create a new app or use existing one
-3. Add Messenger product to your app
-4. Generate a Page Access Token
-5. Set up webhook subscription
-6. Configure webhook URL: `https://your-domain.com/webhook`
-
 ### Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `PAGE_ID` | Your Facebook Page ID | Yes |
-| `PAGE_ACCESS_TOKEN` | Page Access Token from Facebook | Yes |
-| `VERIFY_TOKEN` | Custom token for webhook verification | Yes |
-| `INSTAGRAM_USERNAME` | Instagram username (for Instagram messaging) | No |
-| `PORT` | Server port (default: 3000) | No |
-| `NODE_ENV` | Environment (development/production) | No |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `PAGE_ID` | Your Facebook Page ID | Yes | - |
+| `PAGE_ACCESS_TOKEN` | Page Access Token from Facebook | Yes | - |
+| `VERIFY_TOKEN` | Custom token for webhook verification | Yes | - |
+| `INSTAGRAM_USERNAME` | Instagram username (for Instagram messaging) | No | - |
+| `PORT` | Server port | No | 3000 |
+| `NODE_ENV` | Environment (development/production) | No | development |
+| `LOG_LEVEL` | Logging level (ERROR, WARN, INFO, DEBUG, TRACE) | No | INFO |
+
+### Logging Levels
+
+- **ERROR** ❌ - Critical errors that need immediate attention
+- **WARN** ⚠️ - Warning conditions that might cause issues
+- **INFO** ℹ️ - General information about operations
+- **DEBUG** 🔍 - Detailed debugging information
+- **TRACE** 🔎 - Most detailed tracing information
 
 ## 🚀 Usage
 
@@ -71,48 +99,48 @@ A complete Express.js implementation for integrating with Facebook Messenger Pla
 # Development mode with auto-reload
 npm run dev
 
+# Verbose logging mode (shows all debug info)
+npm run dev:verbose
+
 # Production mode
 npm start
 ```
 
-### Webhook Endpoints
-
-- **GET `/webhook`**: Webhook verification for Facebook
-- **POST `/webhook`**: Receive incoming messages
-
-### API Endpoints
-
-#### Send Messages
+### Log Management
 
 ```bash
-# Send text message
-POST /api/send-message
-{
-  "userId": "recipient_user_id",
-  "message": "Hello from your bot!",
-  "platform": "messenger" // or "instagram"
-}
+# View real-time logs
+npm run logs:watch
 
-# Send image
-POST /api/send-image
-{
-  "userId": "recipient_user_id",
-  "imageUrl": "https://example.com/image.jpg",
-  "platform": "messenger"
-}
+# Clear logs
+npm run logs:clear
+
+# Check log file sizes
+ls -la logs/
 ```
 
-#### Get Information
+### Browser Console Logging
 
-```bash
-# Get conversations
-GET /api/conversations?platform=messenger
+Include the browser logging utility in your HTML:
 
-# Get user profile
-GET /api/user/:userId?platform=messenger
+```html
+<script src="browser-logging.js"></script>
+```
 
-# Health check
-GET /health
+Access logging utilities:
+
+```javascript
+// Get logger status
+const status = window.messengerLoggerUtils.getStatus();
+
+// Clear logs
+window.messengerLoggerUtils.clearLogs();
+
+// Export logs
+window.messengerLoggerUtils.exportLogs();
+
+// Toggle logging
+window.messengerLoggerUtils.setEnabled(false);
 ```
 
 ## 📱 Message Types Supported
@@ -183,6 +211,13 @@ The server automatically processes incoming messages and responds based on conte
 
 ## 🧪 Testing
 
+### Test Page
+Open `test-page.html` in your browser to test:
+- API endpoints
+- Browser console logging
+- Custom log messages
+- Webhook simulation
+
 ### Local Testing with ngrok
 
 1. **Install ngrok:**
@@ -229,15 +264,35 @@ curl -X POST http://localhost:3000/api/send-message \
 | `markAsSeen()` | Mark message as seen | userId |
 | `sendTypingIndicator()` | Show/hide typing | userId, typing |
 
+### Enhanced Response Format
+
+All API responses now include a `_logging` object:
+
+```json
+{
+  "success": true,
+  "result": { ... },
+  "_logging": {
+    "timestamp": "2024-01-15T10:30:45.123Z",
+    "requestId": "1705311045123",
+    "responseTime": "45ms",
+    "platform": "messenger",
+    "serverInfo": {
+      "nodeEnv": "development",
+      "version": "1.0.0"
+    }
+  }
+}
+```
+
 ## 🚨 Error Handling
 
 The application includes comprehensive error handling:
 
-- API request failures
-- Invalid webhook data
-- Missing environment variables
-- Network errors
-- Facebook API errors
+- **Detailed Error Logging**: Error type, message, stack trace, and context
+- **Response Headers**: X-Response-Time and X-Request-ID headers
+- **Structured Error Responses**: Consistent error format with logging info
+- **Graceful Degradation**: Fallback responses when operations fail
 
 ## 🔒 Security Considerations
 
@@ -245,6 +300,7 @@ The application includes comprehensive error handling:
 - **Request Signatures**: Validates request signatures (production-ready implementation needed)
 - **Environment Variables**: Sensitive data stored in environment variables
 - **Input Validation**: Validates all incoming requests
+- **Log Sanitization**: Removes sensitive data from logs
 
 ## 🚀 Production Deployment
 
@@ -253,25 +309,27 @@ The application includes comprehensive error handling:
 3. **Implement proper signature verification**
 4. **Set up monitoring and logging**
 5. **Use environment-specific configurations**
+6. **Set appropriate log levels for production**
 
 ## 📖 Examples
 
-### Basic Bot Response
+### Custom Logging
 ```javascript
-// In processMessage function
-if (message.text.includes('weather')) {
-  await messenger.sendTextMessage(senderId, 'The weather is sunny today!');
-}
+// Server-side
+const { log } = require('./app');
+log.info('Custom operation', { userId, action });
+
+// Browser-side
+window.messengerLogger.info('User action', { action: 'click', element: 'button' });
 ```
 
-### Custom Quick Reply
+### Performance Monitoring
 ```javascript
-const customReplies = [
-  { content_type: 'text', title: 'Yes', payload: 'YES' },
-  { content_type: 'text', title: 'No', payload: 'NO' }
-];
-
-await messenger.sendQuickReply(userId, 'Do you want to continue?', customReplies);
+// Server automatically tracks response times
+// Browser can access performance data from _logging object
+const response = await fetch('/api/send-message', options);
+const data = await response.json();
+console.log('Response time:', data._logging.responseTime);
 ```
 
 ## 🤝 Contributing
@@ -296,10 +354,21 @@ This project is licensed under the MIT License.
 ## 🆘 Support
 
 For issues and questions:
-1. Check the documentation
-2. Review error logs
+1. Check the comprehensive debugging guide (`DEBUGGING.md`)
+2. Review server and browser console logs
 3. Verify environment variables
-4. Test with Facebook's webhook testing tool
+4. Test with the provided test page
+5. Use the logging utilities for debugging
+
+## 🆕 What's New
+
+### Enhanced Logging (v2.0)
+- **Structured Server Logging**: Organized, timestamped, and categorized logs
+- **Browser Console Integration**: Client-side logging with styling and utilities
+- **Response Logging**: Automatic inclusion of debugging information
+- **Performance Tracking**: Response time monitoring for all operations
+- **File Logging**: Persistent log storage with rotation
+- **Test Page**: Interactive testing interface for all features
 
 ---
 

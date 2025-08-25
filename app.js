@@ -7,54 +7,160 @@ const { Platforms, Messenger } = require('./messenger');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-console.log('=== APP INITIALIZATION START ===');
-console.log('Loading environment variables...');
-console.log('Environment check:', {
+// Enhanced console logging with timestamps and structured format
+const log = {
+    info: (message, data = null) => {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] ℹ️  INFO: ${message}`;
+        console.log(logMessage);
+        if (data) console.log('   Data:', JSON.stringify(data, null, 2));
+    },
+    success: (message, data = null) => {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] ✅ SUCCESS: ${message}`;
+        console.log(logMessage);
+        if (data) console.log('   Data:', JSON.stringify(data, null, 2));
+    },
+    warn: (message, data = null) => {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] ⚠️  WARN: ${message}`;
+        console.warn(logMessage);
+        if (data) console.warn('   Data:', JSON.stringify(data, null, 2));
+    },
+    error: (message, error = null, context = null) => {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] ❌ ERROR: ${message}`;
+        console.error(logMessage);
+        if (error) {
+            console.error('   Error Type:', error.constructor.name);
+            console.error('   Error Message:', error.message);
+            console.error('   Error Stack:', error.stack);
+            if (error.code) console.error('   Error Code:', error.code);
+            if (error.status) console.error('   Error Status:', error.status);
+        }
+        if (context) console.error('   Context:', JSON.stringify(context, null, 2));
+    },
+    debug: (message, data = null) => {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] 🔍 DEBUG: ${message}`;
+        console.log(logMessage);
+        if (data) console.log('   Data:', JSON.stringify(data, null, 2));
+    },
+    api: (method, endpoint, status, duration, data = null) => {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] 📡 API: ${method} ${endpoint} | Status: ${status} | Duration: ${duration}ms`;
+        console.log(logMessage);
+        if (data) console.log('   Response:', JSON.stringify(data, null, 2));
+    },
+    webhook: (event, platform, data = null) => {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] 📱 WEBHOOK: ${event} | Platform: ${platform}`;
+        console.log(logMessage);
+        if (data) console.log('   Payload:', JSON.stringify(data, null, 2));
+    },
+    message: (action, userId, content = null) => {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] 💬 MESSAGE: ${action} | User: ${userId}`;
+        console.log(logMessage);
+        if (content) console.log('   Content:', JSON.stringify(content, null, 2));
+    }
+};
+
+log.info('=== SERVER INITIALIZATION START ===');
+log.info('Loading environment variables...');
+
+// Environment variables check
+const envCheck = {
     NODE_ENV: process.env.NODE_ENV || 'Not set',
     PORT: process.env.PORT || 'Default (3000)',
-    PAGE_ID: process.env.PAGE_ID ? 'Set' : 'NOT SET',
+    PAGE_ID: process.env.PAGE_ID ? `Set (${process.env.PAGE_ID})` : 'NOT SET',
     PAGE_ACCESS_TOKEN: process.env.PAGE_ACCESS_TOKEN ? 'Set (first 10 chars: ' + process.env.PAGE_ACCESS_TOKEN.substring(0, 10) + '...)' : 'NOT SET',
     VERIFY_TOKEN: process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET',
     INSTAGRAM_USERNAME: process.env.INSTAGRAM_USERNAME || 'Not set'
-});
+};
+
+log.info('Environment variables status:', envCheck);
 
 // Middleware
-console.log('Setting up middleware...');
+log.info('Setting up middleware...');
 app.use(cors());
 app.use(bodyParser.json({ verify: verifyRequestSignature }));
 app.use(bodyParser.urlencoded({ extended: true }));
-console.log('Middleware setup complete');
+
+// Add response logging middleware
+app.use((req, res, next) => {
+    const startTime = Date.now();
+    
+    // Log incoming request
+    log.info(`Incoming ${req.method} request`, {
+        url: req.url,
+        headers: req.headers,
+        body: req.body,
+        query: req.query,
+        ip: req.ip
+    });
+    
+    // Override res.json to log responses
+    const originalJson = res.json;
+    res.json = function(data) {
+        const duration = Date.now() - startTime;
+        log.api(req.method, req.url, res.statusCode, duration, data);
+        
+        // Add logging headers for browser console
+        res.setHeader('X-Response-Time', `${duration}ms`);
+        res.setHeader('X-Request-ID', Date.now().toString());
+        
+        // Log to browser console if response contains logging info
+        if (data && typeof data === 'object') {
+            data._logging = {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            };
+        }
+        
+        return originalJson.call(this, data);
+    };
+    
+    next();
+});
+
+log.info('Middleware setup complete');
 
 // Initialize Messenger instances
-console.log('Initializing Messenger instances...');
+log.info('Initializing Messenger instances...');
 let messenger, instagram;
 
 try {
     messenger = new Messenger(Platforms.Messenger, process.env.PAGE_ID, process.env.PAGE_ACCESS_TOKEN);
-    console.log('✅ Messenger instance created successfully');
+    log.success('Messenger instance created successfully');
 } catch (error) {
-    console.error('❌ Failed to create Messenger instance:', error.message);
+    log.error('Failed to create Messenger instance', error);
     messenger = null;
 }
 
 try {
     instagram = new Messenger(Platforms.Instagram, process.env.PAGE_ID, process.env.PAGE_ACCESS_TOKEN);
-    console.log('✅ Instagram instance created successfully');
+    log.success('Instagram instance created successfully');
 } catch (error) {
-    console.error('❌ Failed to create Instagram instance:', error.message);
+    log.error('Failed to create Instagram instance', error);
     instagram = null;
 }
 
-console.log('=== APP INITIALIZATION COMPLETE ===');
+log.info('=== SERVER INITIALIZATION COMPLETE ===');
 
 // Verify request signature for security
 function verifyRequestSignature(req, res, buf) {
-    console.log('=== REQUEST SIGNATURE VERIFICATION ===');
+    log.debug('=== REQUEST SIGNATURE VERIFICATION ===');
     const signature = req.headers['x-hub-signature-256'];
     const userAgent = req.headers['user-agent'];
     const contentType = req.headers['content-type'];
     
-    console.log('Request details:', {
+    log.debug('Request signature verification details', {
         method: req.method,
         url: req.url,
         contentType: contentType,
@@ -64,76 +170,78 @@ function verifyRequestSignature(req, res, buf) {
     });
     
     if (!signature) {
-        console.warn('⚠️  No signature provided in headers');
-        console.log('Available headers:', Object.keys(req.headers));
+        log.warn('No signature provided in headers');
+        log.debug('Available headers:', Object.keys(req.headers));
         return;
     }
     
     // In production, you should verify the signature using crypto
     // This is a simplified version for demonstration
-    console.log('✅ Request signature verified (simplified)');
-    console.log('Signature:', signature.substring(0, 20) + '...');
+    log.success('Request signature verified (simplified)');
+    log.debug('Signature preview:', signature.substring(0, 20) + '...');
 }
 
 // Webhook verification endpoint
 app.get('/webhook', (req, res) => {
-    console.log('=== WEBHOOK VERIFICATION REQUEST ===');
+    log.webhook('VERIFICATION_REQUEST', 'facebook', req.query);
+    
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
     
-    console.log('Webhook verification parameters:', {
+    log.debug('Webhook verification parameters', {
         mode: mode,
         token: token ? 'Provided' : 'Missing',
         challenge: challenge ? 'Provided' : 'Missing',
         expectedToken: process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET'
     });
     
-    console.log('Query parameters received:', req.query);
-    
     if (mode && token) {
         if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
-            console.log('✅ Webhook verified successfully');
-            console.log('Challenge response sent:', challenge);
+            log.success('Webhook verified successfully');
+            log.debug('Challenge response sent:', challenge);
             res.status(200).send(challenge);
         } else {
-            console.log('❌ Webhook verification failed');
-            console.log('Expected mode: subscribe, got:', mode);
-            console.log('Expected token:', process.env.VERIFY_TOKEN);
-            console.log('Received token:', token);
+            log.error('Webhook verification failed', null, {
+                expectedMode: 'subscribe',
+                receivedMode: mode,
+                expectedToken: process.env.VERIFY_TOKEN,
+                receivedToken: token
+            });
             res.sendStatus(403);
         }
     } else {
-        console.log('❌ Invalid webhook verification request');
-        console.log('Missing parameters:', {
-            mode: !mode,
-            token: !token
+        log.error('Invalid webhook verification request', null, {
+            missingMode: !mode,
+            missingToken: !token
         });
         res.sendStatus(400);
     }
-    console.log('=== WEBHOOK VERIFICATION END ===');
 });
 
 // Webhook endpoint for receiving messages
 app.post('/webhook', async (req, res) => {
-    console.log('=== WEBHOOK MESSAGE RECEIVED ===');
+    log.webhook('MESSAGE_RECEIVED', req.body.object || 'unknown', req.body);
+    
     const body = req.body;
     const headers = req.headers;
     
-    console.log('Webhook headers:', {
+    log.debug('Webhook headers', {
         'x-hub-signature-256': headers['x-hub-signature-256'] ? 'Present' : 'Missing',
         'content-type': headers['content-type'],
         'user-agent': headers['user-agent']
     });
     
-    console.log('Webhook body object type:', body.object);
-    console.log('Webhook body entry count:', body.entry ? body.entry.length : 'No entries');
+    log.debug('Webhook body structure', {
+        objectType: body.object,
+        entryCount: body.entry ? body.entry.length : 'No entries'
+    });
     
     if (body.object === 'page') {
-        console.log('📱 Processing Facebook Messenger webhook...');
+        log.info('📱 Processing Facebook Messenger webhook...');
         try {
             for (const entry of body.entry) {
-                console.log('Processing entry:', {
+                log.debug('Processing webhook entry', {
                     id: entry.id,
                     time: entry.time,
                     messagingCount: entry.messaging ? entry.messaging.length : 0
@@ -146,8 +254,7 @@ app.post('/webhook', async (req, res) => {
                     const message = webhookEvent.message;
                     const timestamp = webhookEvent.timestamp;
                     
-                    console.log('📨 Message details:', {
-                        senderId: senderId,
+                    log.message('RECEIVED', senderId, {
                         messageType: message ? Object.keys(message) : 'No message',
                         timestamp: timestamp,
                         hasText: message && message.text ? 'Yes' : 'No',
@@ -155,62 +262,56 @@ app.post('/webhook', async (req, res) => {
                     });
                     
                     if (message && message.text) {
-                        console.log('📝 Message text:', message.text);
+                        log.debug('Message text content:', message.text);
                     }
                     
                     // Mark message as seen
-                    console.log('👁️  Marking message as seen...');
+                    log.debug('Marking message as seen...');
                     try {
                         await messenger.markAsSeen(senderId);
-                        console.log('✅ Message marked as seen');
+                        log.success('Message marked as seen');
                     } catch (error) {
-                        console.error('❌ Failed to mark message as seen:', error.message);
+                        log.error('Failed to mark message as seen', error);
                     }
                     
                     // Send typing indicator
-                    console.log('⌨️  Sending typing indicator...');
+                    log.debug('Sending typing indicator...');
                     try {
                         await messenger.sendTypingIndicator(senderId, true);
-                        console.log('✅ Typing indicator started');
+                        log.success('Typing indicator started');
                     } catch (error) {
-                        console.error('❌ Failed to start typing indicator:', error.message);
+                        log.error('Failed to start typing indicator', error);
                     }
                     
                     // Process the message and send response
-                    console.log('🔄 Processing message and generating response...');
+                    log.debug('Processing message and generating response...');
                     await processMessage(senderId, message);
                     
                     // Stop typing indicator
-                    console.log('⏹️  Stopping typing indicator...');
+                    log.debug('Stopping typing indicator...');
                     try {
                         await messenger.sendTypingIndicator(senderId, false);
-                        console.log('✅ Typing indicator stopped');
+                        log.success('Typing indicator stopped');
                     } catch (error) {
-                        console.error('❌ Failed to stop typing indicator:', error.message);
+                        log.error('Failed to stop typing indicator', error);
                     }
                 } else {
-                    console.log('⚠️  No messaging event found in entry');
+                    log.warn('No messaging event found in webhook entry');
                 }
             }
             
-            console.log('✅ Webhook processing completed successfully');
+            log.success('Webhook processing completed successfully');
             res.status(200).send('EVENT_RECEIVED');
         } catch (error) {
-            console.error('❌ Webhook processing error:', error.message);
-            console.error('Error stack:', error.stack);
-            console.error('Error details:', {
-                name: error.name,
-                code: error.code,
-                status: error.status
-            });
+            log.error('Webhook processing error', error);
             res.sendStatus(500);
         }
     } else if (body.object === 'instagram') {
-        console.log('📸 Processing Instagram webhook...');
+        log.info('📸 Processing Instagram webhook...');
         // Handle Instagram webhooks
         try {
             for (const entry of body.entry) {
-                console.log('Processing Instagram entry:', {
+                log.debug('Processing Instagram webhook entry', {
                     id: entry.id,
                     time: entry.time,
                     messagingCount: entry.messaging ? entry.messaging.length : 0
@@ -223,8 +324,7 @@ app.post('/webhook', async (req, res) => {
                     const message = webhookEvent.message;
                     const timestamp = webhookEvent.timestamp;
                     
-                    console.log('📨 Instagram message details:', {
-                        senderId: senderId,
+                    log.message('INSTAGRAM_RECEIVED', senderId, {
                         messageType: message ? Object.keys(message) : 'No message',
                         timestamp: timestamp,
                         hasText: message && message.text ? 'Yes' : 'No',
@@ -232,58 +332,51 @@ app.post('/webhook', async (req, res) => {
                     });
                     
                     if (message && message.text) {
-                        console.log('📝 Instagram message text:', message.text);
+                        log.debug('Instagram message text:', message.text);
                     }
                     
                     // Process Instagram message
-                    console.log('🔄 Processing Instagram message...');
+                    log.debug('Processing Instagram message...');
                     await processInstagramMessage(senderId, message);
                 } else {
-                    console.log('⚠️  No Instagram messaging event found in entry');
+                    log.warn('No Instagram messaging event found in webhook entry');
                 }
             }
             
-            console.log('✅ Instagram webhook processing completed successfully');
+            log.success('Instagram webhook processing completed successfully');
             res.status(200).send('EVENT_RECEIVED');
         } catch (error) {
-            console.error('❌ Instagram webhook processing error:', error.message);
-            console.error('Error stack:', error.stack);
-            console.error('Error details:', {
-                name: error.name,
-                code: error.code,
-                status: error.status
-            });
+            log.error('Instagram webhook processing error', error);
             res.sendStatus(500);
         }
     } else {
-        console.log('❌ Unknown webhook object type:', body.object);
-        console.log('Available object types:', Object.keys(body));
+        log.error('Unknown webhook object type', null, {
+            receivedType: body.object,
+            availableTypes: Object.keys(body)
+        });
         res.sendStatus(404);
     }
-    console.log('=== WEBHOOK PROCESSING END ===');
 });
 
 // Process incoming messages and generate responses
 async function processMessage(senderId, message) {
-    console.log('=== MESSAGE PROCESSING START ===');
-    console.log('Processing message for sender:', senderId);
-    console.log('Message object:', message);
+    log.message('PROCESSING_START', senderId, message);
     
     try {
         if (message.text) {
             const text = message.text.toLowerCase();
-            console.log('📝 Processing text message:', text);
+            log.debug('Processing text message:', text);
             
             // Simple bot logic - you can expand this
             if (text.includes('hello') || text.includes('hi')) {
-                console.log('🤖 Sending greeting response...');
+                log.debug('Sending greeting response...');
                 const response = 'Hello! How can I help you today?';
-                console.log('Response text:', response);
+                log.debug('Response text:', response);
                 
                 const result = await messenger.sendTextMessage(senderId, response);
-                console.log('✅ Greeting sent successfully:', result);
+                log.success('Greeting sent successfully', result);
             } else if (text.includes('help')) {
-                console.log('🤖 Sending help response with quick replies...');
+                log.debug('Sending help response with quick replies...');
                 const quickReplies = [
                     {
                         content_type: 'text',
@@ -302,11 +395,11 @@ async function processMessage(senderId, message) {
                     }
                 ];
                 
-                console.log('Quick replies to send:', quickReplies);
+                log.debug('Quick replies to send:', quickReplies);
                 const result = await messenger.sendQuickReply(senderId, 'Here are some options to help you:', quickReplies);
-                console.log('✅ Help message with quick replies sent successfully:', result);
+                log.success('Help message with quick replies sent successfully', result);
             } else if (text.includes('button')) {
-                console.log('🤖 Sending button template response...');
+                log.debug('Sending button template response...');
                 const buttons = [
                     {
                         type: 'web_url',
@@ -320,300 +413,440 @@ async function processMessage(senderId, message) {
                     }
                 ];
                 
-                console.log('Buttons to send:', buttons);
+                log.debug('Buttons to send:', buttons);
                 const result = await messenger.sendButtonTemplate(senderId, 'Check out these resources:', buttons);
-                console.log('✅ Button template sent successfully:', result);
+                log.success('Button template sent successfully', result);
             } else {
-                console.log('🤖 Sending default response...');
+                log.debug('Sending default response...');
                 const response = 'Thanks for your message! I\'m here to help.';
-                console.log('Default response text:', response);
+                log.debug('Default response text:', response);
                 
                 const result = await messenger.sendTextMessage(senderId, response);
-                console.log('✅ Default response sent successfully:', result);
+                log.success('Default response sent successfully', result);
             }
         } else {
-            console.log('⚠️  Message has no text content');
-            console.log('Message keys:', Object.keys(message));
+            log.warn('Message has no text content', {
+                messageKeys: Object.keys(message)
+            });
         }
     } catch (error) {
-        console.error('❌ Error processing message:', error.message);
-        console.error('Error stack:', error.stack);
-        console.error('Error details:', {
-            name: error.name,
-            code: error.code,
-            status: error.status
-        });
+        log.error('Error processing message', error, { senderId });
         
         try {
-            console.log('🔄 Attempting to send error message to user...');
+            log.debug('Attempting to send error message to user...');
             const errorResponse = 'Sorry, I encountered an error. Please try again.';
             await messenger.sendTextMessage(senderId, errorResponse);
-            console.log('✅ Error message sent to user');
+            log.success('Error message sent to user');
         } catch (sendError) {
-            console.error('❌ Failed to send error message to user:', sendError.message);
+            log.error('Failed to send error message to user', sendError);
         }
     }
-    console.log('=== MESSAGE PROCESSING END ===');
+    
+    log.message('PROCESSING_END', senderId);
 }
 
 // Process Instagram messages
 async function processInstagramMessage(senderId, message) {
-    console.log('=== INSTAGRAM MESSAGE PROCESSING START ===');
-    console.log('Processing Instagram message for sender:', senderId);
-    console.log('Instagram message object:', message);
+    log.message('INSTAGRAM_PROCESSING_START', senderId, message);
     
     try {
         if (message.text) {
             const text = message.text.toLowerCase();
-            console.log('📝 Processing Instagram text message:', text);
+            log.debug('Processing Instagram text message:', text);
             
             if (text.includes('hello') || text.includes('hi')) {
-                console.log('🤖 Sending Instagram greeting response...');
+                log.debug('Sending Instagram greeting response...');
                 const response = 'Hello from Instagram! 👋';
-                console.log('Instagram response text:', response);
+                log.debug('Instagram response text:', response);
                 
                 const result = await instagram.sendTextMessage(senderId, response);
-                console.log('✅ Instagram greeting sent successfully:', result);
+                log.success('Instagram greeting sent successfully', result);
             } else {
-                console.log('🤖 Sending Instagram default response...');
+                log.debug('Sending Instagram default response...');
                 const response = 'Thanks for reaching out on Instagram!';
-                console.log('Instagram default response text:', response);
+                log.debug('Instagram default response text:', response);
                 
                 const result = await instagram.sendTextMessage(senderId, response);
-                console.log('✅ Instagram default response sent successfully:', result);
+                log.success('Instagram default response sent successfully', result);
             }
         } else {
-            console.log('⚠️  Instagram message has no text content');
-            console.log('Instagram message keys:', Object.keys(message));
+            log.warn('Instagram message has no text content', {
+                messageKeys: Object.keys(message)
+            });
         }
     } catch (error) {
-        console.error('❌ Error processing Instagram message:', error.message);
-        console.error('Error stack:', error.stack);
-        console.error('Error details:', {
-            name: error.name,
-            code: error.code,
-            status: error.status
-        });
+        log.error('Error processing Instagram message', error, { senderId });
     }
-    console.log('=== INSTAGRAM MESSAGE PROCESSING END ===');
+    
+    log.message('INSTAGRAM_PROCESSING_END', senderId);
 }
 
 // API Routes for manual message sending
 app.post('/api/send-message', async (req, res) => {
+    log.info('=== SEND MESSAGE API REQUEST START ===');
+    log.debug('Request details', {
+        body: req.body,
+        headers: req.headers,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+    });
+    
+    log.debug('Environment variables check', {
+        pageId: process.env.PAGE_ID ? `Set (${process.env.PAGE_ID})` : 'NOT SET',
+        pageAccessToken: process.env.PAGE_ACCESS_TOKEN ? `Set (${process.env.PAGE_ACCESS_TOKEN.substring(0, 10)}...)` : 'NOT SET',
+        verifyToken: process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET',
+        nodeEnv: process.env.NODE_ENV || 'Not set'
+    });
+    
     try {
-        console.log('=== SEND MESSAGE REQUEST START ===');
-        console.log('Request body:', JSON.stringify(req.body, null, 2));
-        console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-        console.log('Environment variables check:', {
-            pageId: process.env.PAGE_ID ? `Set (${process.env.PAGE_ID})` : 'NOT SET',
-            pageAccessToken: process.env.PAGE_ACCESS_TOKEN ? `Set (${process.env.PAGE_ACCESS_TOKEN.substring(0, 10)}...)` : 'NOT SET',
-            verifyToken: process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET',
-            nodeEnv: process.env.NODE_ENV || 'Not set'
-        });
-        
         const { userId, message, platform = 'messenger' } = req.body;
         
-        console.log('Parsed request data:', { userId, message, platform });
+        log.debug('Parsed request data', { userId, message, platform });
         
         if (!userId || !message) {
-            console.log('Validation failed: missing userId or message');
-            return res.status(400).json({ 
-                error: 'Missing userId or message',
+            log.warn('Validation failed: missing userId or message', {
                 received: { userId, message, platform }
             });
+            
+            const errorResponse = { 
+                error: 'Missing userId or message',
+                received: { userId, message, platform },
+                _logging: {
+                    timestamp: new Date().toISOString(),
+                    requestId: Date.now().toString(),
+                    validationError: 'Missing required fields',
+                    serverInfo: {
+                        nodeEnv: process.env.NODE_ENV || 'development',
+                        version: '1.0.0'
+                    }
+                }
+            };
+            
+            return res.status(400).json(errorResponse);
         }
         
-        console.log('Creating messenger instance for platform:', platform);
+        log.debug('Creating messenger instance for platform', { platform });
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
         
-        console.log('Messenger instance created, checking if methods exist:', {
+        log.debug('Messenger instance validation', {
             hasSendTextMessage: typeof messengerInstance.sendTextMessage === 'function',
             hasSendImage: typeof messengerInstance.sendImage === 'function',
-            instanceType: messengerInstance.constructor.name
+            instanceType: messengerInstance.constructor.name,
+            platform: platform
         });
         
-        console.log('Attempting to send message...');
+        log.debug('Attempting to send message...');
+        const startTime = Date.now();
         const result = await messengerInstance.sendTextMessage(userId, message);
+        const duration = Date.now() - startTime;
         
-        console.log('Message sent successfully:', JSON.stringify(result, null, 2));
-        console.log('=== SEND MESSAGE REQUEST END ===');
-        
-        res.json({ success: true, result });
-    } catch (error) {
-        console.error('=== SEND MESSAGE ERROR ===');
-        console.error('Error type:', error.constructor.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        console.error('Error details:', {
-            name: error.name,
-            code: error.code,
-            status: error.status,
-            statusCode: error.statusCode,
-            response: error.response ? {
-                status: error.response.status,
-                statusText: error.response.statusText,
-                data: error.response.data
-            } : 'No response object'
+        log.success('Message sent successfully', {
+            result,
+            duration: `${duration}ms`,
+            platform,
+            userId
         });
-        console.error('=== END ERROR LOG ===');
         
-        res.status(500).json({ 
+        log.info('=== SEND MESSAGE API REQUEST END ===');
+        
+        // Enhanced response with logging info
+        const successResponse = { 
+            success: true, 
+            result,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                messageLength: message.length,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
+    } catch (error) {
+        log.error('=== SEND MESSAGE API ERROR ===', error, {
+            requestBody: req.body,
+            userId: req.body.userId,
+            platform: req.body.platform
+        });
+        
+        const errorResponse = { 
             error: error.message, 
             errorType: error.constructor.name,
             errorCode: error.code,
-            details: 'Check server logs for more information'
-        });
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status,
+                    statusCode: error.statusCode
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
     }
 });
 
 app.post('/api/send-image', async (req, res) => {
+    log.info('=== SEND IMAGE API REQUEST START ===');
+    log.debug('Request details', {
+        body: req.body,
+        headers: req.headers,
+        ip: req.ip
+    });
+    
     try {
-        console.log('=== SEND IMAGE REQUEST START ===');
-        console.log('Request body:', JSON.stringify(req.body, null, 2));
-        
         const { userId, imageUrl, platform = 'messenger' } = req.body;
         
-        console.log('Parsed request data:', { userId, imageUrl, platform });
+        log.debug('Parsed request data', { userId, imageUrl, platform });
         
         if (!userId || !imageUrl) {
-            console.log('Validation failed: missing userId or imageUrl');
-            return res.status(400).json({ 
-                error: 'Missing userId or imageUrl',
+            log.warn('Validation failed: missing userId or imageUrl', {
                 received: { userId, imageUrl, platform }
             });
+            
+            const errorResponse = { 
+                error: 'Missing userId or imageUrl',
+                received: { userId, imageUrl, platform },
+                _logging: {
+                    timestamp: new Date().toISOString(),
+                    requestId: Date.now().toString(),
+                    validationError: 'Missing required fields',
+                    serverInfo: {
+                        nodeEnv: process.env.NODE_ENV || 'development',
+                        version: '1.0.0'
+                    }
+                }
+            };
+            
+            return res.status(400).json(errorResponse);
         }
         
-        console.log('Creating messenger instance for platform:', platform);
+        log.debug('Creating messenger instance for platform', { platform });
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
         
-        console.log('Attempting to send image...');
+        log.debug('Attempting to send image...');
+        const startTime = Date.now();
         const result = await messengerInstance.sendImage(userId, imageUrl);
+        const duration = Date.now() - startTime;
         
-        console.log('Image sent successfully:', JSON.stringify(result, null, 2));
-        console.log('=== SEND IMAGE REQUEST END ===');
+        log.success('Image sent successfully', {
+            result,
+            duration: `${duration}ms`,
+            platform,
+            userId,
+            imageUrl
+        });
         
-        res.json({ success: true, result });
+        log.info('=== SEND IMAGE API REQUEST END ===');
+        
+        const successResponse = { 
+            success: true, 
+            result,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                imageUrl: imageUrl,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
     } catch (error) {
-        console.error('=== SEND IMAGE ERROR ===');
-        console.error('Error type:', error.constructor.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        console.error('=== END ERROR LOG ===');
+        log.error('=== SEND IMAGE API ERROR ===', error, {
+            requestBody: req.body,
+            userId: req.body.userId,
+            platform: req.body.platform
+        });
         
-        res.status(500).json({ 
+        const errorResponse = { 
             error: error.message, 
             errorType: error.constructor.name,
-            details: 'Check server logs for more information'
-        });
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
     }
 });
 
 // Get conversations
 app.get('/api/conversations', async (req, res) => {
+    log.info('=== GET CONVERSATIONS API REQUEST START ===');
+    const { platform = 'messenger' } = req.query;
+    log.debug('Platform requested', { platform });
+    
     try {
-        console.log('=== GET CONVERSATIONS REQUEST START ===');
-        const { platform = 'messenger' } = req.query;
-        console.log('Platform requested:', platform);
-        
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
-        console.log('Messenger instance created for platform:', platform);
+        log.debug('Messenger instance created for platform', { platform });
         
-        console.log('Attempting to get conversations...');
+        log.debug('Attempting to get conversations...');
+        const startTime = Date.now();
         const conversations = await messengerInstance.getConversations();
+        const duration = Date.now() - startTime;
         
-        console.log('Conversations retrieved successfully:', conversations ? 'Data received' : 'No data');
-        console.log('=== GET CONVERSATIONS REQUEST END ===');
+        log.success('Conversations retrieved successfully', {
+            hasData: !!conversations,
+            dataSize: conversations ? JSON.stringify(conversations).length : 0,
+            duration: `${duration}ms`,
+            platform
+        });
         
-        res.json(conversations);
+        log.info('=== GET CONVERSATIONS API REQUEST END ===');
+        
+        const successResponse = { 
+            ...conversations,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
     } catch (error) {
-        console.error('=== GET CONVERSATIONS ERROR ===');
-        console.error('Error type:', error.constructor.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        console.error('=== END ERROR LOG ===');
+        log.error('=== GET CONVERSATIONS API ERROR ===', error, {
+            platform: platform
+        });
         
-        res.status(500).json({ 
+        const errorResponse = { 
             error: error.message, 
             errorType: error.constructor.name,
-            details: 'Check server logs for more information'
-        });
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
     }
 });
 
 // Get user profile
 app.get('/api/user/:userId', async (req, res) => {
+    log.info('=== GET USER PROFILE API REQUEST START ===');
+    const { userId } = req.params;
+    const { platform = 'messenger' } = req.query;
+    
+    log.debug('Request parameters', { userId, platform });
+    
     try {
-        console.log('=== GET USER PROFILE REQUEST START ===');
-        const { userId } = req.params;
-        const { platform = 'messenger' } = req.query;
-        
-        console.log('Requested user ID:', userId);
-        console.log('Platform requested:', platform);
-        
         const messengerInstance = platform === 'instagram' ? instagram : messenger;
-        console.log('Messenger instance created for platform:', platform);
+        log.debug('Messenger instance created for platform', { platform });
         
-        console.log('Attempting to get user profile...');
+        log.debug('Attempting to get user profile...');
+        const startTime = Date.now();
         const profile = await messengerInstance.getUserProfile(userId);
+        const duration = Date.now() - startTime;
         
-        console.log('User profile retrieved successfully:', profile ? 'Data received' : 'No data');
-        console.log('=== GET USER PROFILE REQUEST END ===');
+        log.success('User profile retrieved successfully', {
+            hasData: !!profile,
+            dataSize: profile ? JSON.stringify(profile).length : 0,
+            duration: `${duration}ms`,
+            platform,
+            userId
+        });
         
-        res.json(profile);
+        log.info('=== GET USER PROFILE API REQUEST END ===');
+        
+        const successResponse = { 
+            ...profile,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                userId: userId,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
     } catch (error) {
-        console.error('=== GET USER PROFILE ERROR ===');
-        console.error('Error type:', error.constructor.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        console.error('=== END ERROR LOG ===');
+        log.error('=== GET USER PROFILE API ERROR ===', error, {
+            userId: userId,
+            platform: platform
+        });
         
-        res.status(500).json({ 
+        const errorResponse = { 
             error: error.message, 
             errorType: error.constructor.name,
-            details: 'Check server logs for more information'
-        });
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
     }
 });
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    console.log('=== HEALTH CHECK REQUEST ===');
-    console.log('Environment variables status:', {
-        pageId: process.env.PAGE_ID ? 'Set' : 'Not Set',
-        pageAccessToken: process.env.PAGE_ACCESS_TOKEN ? 'Set' : 'Not Set',
-        verifyToken: process.env.VERIFY_TOKEN ? 'Set' : 'Not Set',
-        nodeEnv: process.env.NODE_ENV || 'Not set',
-        port: process.env.PORT || 'Default (3000)'
-    });
+    log.info('=== HEALTH CHECK REQUEST ===');
     
-    // Test messenger instance creation
-    let messengerStatus = 'Unknown';
-    let instagramStatus = 'Unknown';
-    
-    try {
-        if (messenger && typeof messenger.sendTextMessage === 'function') {
-            messengerStatus = 'Ready';
-        } else {
-            messengerStatus = 'Not Ready';
-        }
-    } catch (e) {
-        messengerStatus = `Error: ${e.message}`;
-    }
-    
-    try {
-        if (instagram && typeof instagram.sendTextMessage === 'function') {
-            instagramStatus = 'Ready';
-        } else {
-            instagramStatus = 'Not Ready';
-        }
-    } catch (e) {
-        instagramStatus = `Error: ${e.message}`;
-    }
-    
-    console.log('Messenger instances status:', { messenger: messengerStatus, instagram: instagramStatus });
-    console.log('=== HEALTH CHECK END ===');
-    
-    res.json({ 
+    const healthData = {
         status: 'OK', 
         timestamp: new Date().toISOString(),
         platform: 'Messenger API Express Server',
@@ -624,15 +857,30 @@ app.get('/health', (req, res) => {
             nodeEnv: process.env.NODE_ENV || 'Not set'
         },
         instances: {
-            messenger: messengerStatus,
-            instagram: instagramStatus
+            messenger: messenger && typeof messenger.sendTextMessage === 'function' ? 'Ready' : 'Not Ready',
+            instagram: instagram && typeof instagram.sendTextMessage === 'function' ? 'Ready' : 'Not Ready'
+        },
+        _logging: {
+            timestamp: new Date().toISOString(),
+            requestId: Date.now().toString(),
+            serverInfo: {
+                nodeEnv: process.env.NODE_ENV || 'development',
+                version: '1.0.0',
+                uptime: process.uptime(),
+                memory: process.memoryUsage()
+            }
         }
-    });
+    };
+    
+    log.success('Health check completed', healthData);
+    log.info('=== HEALTH CHECK END ===');
+    
+    res.json(healthData);
 });
 
 // Root endpoint
 app.get('/', (req, res) => {
-    res.json({
+    const rootData = {
         message: 'Facebook Messenger Platform API Server',
         version: '1.0.0',
         endpoints: {
@@ -642,83 +890,128 @@ app.get('/', (req, res) => {
             conversations: '/api/conversations',
             userProfile: '/api/user/:userId',
             health: '/health'
+        },
+        _logging: {
+            timestamp: new Date().toISOString(),
+            requestId: Date.now().toString(),
+            serverInfo: {
+                nodeEnv: process.env.NODE_ENV || 'development',
+                version: '1.0.0'
+            }
         }
-    });
+    };
+    
+    res.json(rootData);
 });
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-    console.error('=== UNHANDLED ERROR MIDDLEWARE ===');
-    console.error('Request URL:', req.url);
-    console.error('Request method:', req.method);
-    console.error('Request headers:', JSON.stringify(req.headers, null, 2));
-    console.error('Request body:', JSON.stringify(req.body, null, 2));
-    console.error('Error type:', error.constructor.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('=== END UNHANDLED ERROR ===');
+    log.error('=== UNHANDLED ERROR MIDDLEWARE ===', error, {
+        requestUrl: req.url,
+        requestMethod: req.method,
+        requestHeaders: req.headers,
+        requestBody: req.body
+    });
     
-    res.status(500).json({ 
+    const errorResponse = { 
         error: 'Internal server error',
         errorType: error.constructor.name,
         message: error.message,
-        details: 'Check server logs for more information'
-    });
+        details: 'Check server logs for more information',
+        _logging: {
+            timestamp: new Date().toISOString(),
+            requestId: Date.now().toString(),
+            errorDetails: {
+                name: error.name,
+                code: error.code,
+                status: error.status,
+                stack: error.stack
+            },
+            serverInfo: {
+                nodeEnv: process.env.NODE_ENV || 'development',
+                version: '1.0.0'
+            }
+        }
+    };
+    
+    res.status(500).json(errorResponse);
 });
 
 // 404 handler
 app.use((req, res) => {
-    console.log('=== 404 NOT FOUND ===');
-    console.log('Request URL:', req.url);
-    console.log('Request method:', req.method);
-    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-    console.log('=== END 404 LOG ===');
+    log.warn('=== 404 NOT FOUND ===', {
+        requestUrl: req.url,
+        requestMethod: req.method,
+        requestHeaders: req.headers
+    });
     
-    res.status(404).json({ error: 'Endpoint not found' });
+    const notFoundResponse = { 
+        error: 'Endpoint not found',
+        _logging: {
+            timestamp: new Date().toISOString(),
+            requestId: Date.now().toString(),
+            requestedUrl: req.url,
+            availableEndpoints: [
+                '/webhook',
+                '/api/send-message',
+                '/api/send-image',
+                '/api/conversations',
+                '/api/user/:userId',
+                '/health'
+            ],
+            serverInfo: {
+                nodeEnv: process.env.NODE_ENV || 'development',
+                version: '1.0.0'
+            }
+        }
+    };
+    
+    res.status(404).json(notFoundResponse);
 });
 
 // Start server
 app.listen(PORT, () => {
-    console.log('=== SERVER STARTUP ===');
-    console.log(`🚀 Messenger API Server running on port ${PORT}`);
-    console.log(`📱 Webhook URL: http://localhost:${PORT}/webhook`);
-    console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
+    log.info('=== SERVER STARTUP ===');
+    log.success(`🚀 Messenger API Server running on port ${PORT}`);
+    log.info(`📱 Webhook URL: http://localhost:${PORT}/webhook`);
+    log.info(`🔗 Health Check: http://localhost:${PORT}/health`);
     
-    console.log('Environment variables check:');
-    console.log('- PAGE_ID:', process.env.PAGE_ID ? `Set (${process.env.PAGE_ID})` : 'NOT SET');
-    console.log('- PAGE_ACCESS_TOKEN:', process.env.PAGE_ACCESS_TOKEN ? 'Set (first 10 chars: ' + process.env.PAGE_ACCESS_TOKEN.substring(0, 10) + '...)' : 'NOT SET');
-    console.log('- VERIFY_TOKEN:', process.env.VERIFY_TOKEN ? 'Set' : 'NOT SET');
-    console.log('- NODE_ENV:', process.env.NODE_ENV || 'Not set');
-    console.log('- PORT:', process.env.PORT || 'Default (3000)');
+    log.info('Environment variables check:', envCheck);
     
     // Test messenger instances
     try {
         if (messenger && typeof messenger.sendTextMessage === 'function') {
-            console.log('✅ Messenger instance initialized successfully');
+            log.success('✅ Messenger instance initialized successfully');
         } else {
-            console.log('❌ Messenger instance failed to initialize properly');
+            log.error('❌ Messenger instance failed to initialize properly');
         }
     } catch (e) {
-        console.log('❌ Error checking messenger instance:', e.message);
+        log.error('❌ Error checking messenger instance', e);
     }
     
     try {
         if (instagram && typeof instagram.sendTextMessage === 'function') {
-            console.log('✅ Instagram instance initialized successfully');
+            log.success('✅ Instagram instance initialized successfully');
         } else {
-            console.log('❌ Instagram instance failed to initialize properly');
+            log.error('❌ Instagram instance failed to initialize properly');
         }
     } catch (e) {
-        console.log('❌ Error checking instagram instance:', e.message);
+        log.error('❌ Error checking instagram instance', e);
     }
     
     if (!process.env.PAGE_ID || !process.env.PAGE_ACCESS_TOKEN) {
-        console.warn('⚠️  Missing required environment variables. Please check your .env file.');
-        console.warn('   This will cause API endpoints to fail.');
+        log.warn('⚠️  Missing required environment variables. Please check your .env file.');
+        log.warn('   This will cause API endpoints to fail.');
     } else {
-        console.log('✅ All required environment variables are set');
+        log.success('✅ All required environment variables are set');
     }
-    console.log('=== SERVER STARTUP COMPLETE ===');
+    
+    log.info('=== SERVER STARTUP COMPLETE ===');
+    
+    // Browser console logging instructions
+    log.info('🌐 Browser Console Logging Enabled');
+    log.info('   All API responses now include _logging object for debugging');
+    log.info('   Check browser console for detailed response information');
 });
 
 module.exports = app;

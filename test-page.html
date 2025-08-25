@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messenger API - Browser Logging Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .header h1 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .section h2 {
+            color: #333;
+            margin-top: 0;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        .btn {
+            background-color: #1976d2;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background-color: #1565c0;
+        }
+        .btn-success {
+            background-color: #388e3c;
+        }
+        .btn-success:hover {
+            background-color: #2e7d32;
+        }
+        .btn-warning {
+            background-color: #f57c00;
+        }
+        .btn-warning:hover {
+            background-color: #ef6c00;
+        }
+        .btn-danger {
+            background-color: #d32f2f;
+        }
+        .btn-danger:hover {
+            background-color: #c62828;
+        }
+        .response {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .status {
+            background-color: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .status h3 {
+            margin-top: 0;
+            color: #2e7d32;
+        }
+        .instructions {
+            background-color: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        .code {
+            background-color: #f1f3f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Messenger API Browser Logging Test</h1>
+            <p>Test the enhanced logging system with browser console integration</p>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Instructions</h3>
+            <ul>
+                <li>Open your browser's Developer Tools (F12) and go to the Console tab</li>
+                <li>All API calls will be logged with detailed information</li>
+                <li>Use the controls below to manage logging and test endpoints</li>
+                <li>Check the console for styled, organized log messages</li>
+                <li>All responses include a <span class="code">_logging</span> object for debugging</li>
+            </ul>
+        </div>
+
+        <div class="status">
+            <h3>📊 Logger Status</h3>
+            <div id="loggerStatus">Loading...</div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Logging Controls</h2>
+            <div class="log-controls">
+                <button class="btn btn-success" onclick="getLoggerStatus()">📊 Get Status</button>
+                <button class="btn btn-warning" onclick="clearLogs()">🗑️ Clear Logs</button>
+                <button class="btn btn-success" onclick="exportLogs()">📥 Export Logs</button>
+                <button class="btn btn-danger" onclick="toggleLogging()">🔄 Toggle Logging</button>
+                <select id="logLevel" onchange="setLogLevel()">
+                    <option value="INFO">INFO Level</option>
+                    <option value="DEBUG">DEBUG Level</option>
+                    <option value="WARN">WARN Level</option>
+                    <option value="ERROR">ERROR Level</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📡 Test API Endpoints</h2>
+            
+            <div class="form-group">
+                <label for="apiUrl">API Base URL:</label>
+                <input type="text" id="apiUrl" value="http://localhost:3000" placeholder="Enter your API base URL">
+            </div>
+
+            <div class="form-group">
+                <label for="testEndpoint">Test Endpoint:</label>
+                <select id="testEndpoint">
+                    <option value="/health">Health Check (/health)</option>
+                    <option value="/">Root Endpoint (/)</option>
+                    <option value="/api/send-message">Send Message (/api/send-message)</option>
+                    <option value="/api/send-image">Send Image (/api/send-image)</option>
+                    <option value="/api/conversations">Get Conversations (/api/conversations)</option>
+                    <option value="/api/user/test123">Get User Profile (/api/user/:userId)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="requestMethod">Request Method:</label>
+                <select id="requestMethod">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="requestBody">Request Body (for POST requests):</label>
+                <textarea id="requestBody" placeholder='{"userId": "test123", "message": "Hello World", "platform": "messenger"}'></textarea>
+            </div>
+
+            <button class="btn btn-success" onclick="testEndpoint()">🚀 Test Endpoint</button>
+            <button class="btn btn-warning" onclick="clearResponse()">🗑️ Clear Response</button>
+
+            <div id="response" class="response" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>💬 Custom Logging</h2>
+            <div class="form-group">
+                <label for="customMessage">Custom Log Message:</label>
+                <input type="text" id="customMessage" placeholder="Enter a custom log message">
+            </div>
+            <div class="form-group">
+                <label for="customData">Custom Data (JSON):</label>
+                <textarea id="customData" placeholder='{"key": "value", "number": 42}'></textarea>
+            </div>
+            <div class="log-controls">
+                <button class="btn btn-success" onclick="logInfo()">ℹ️ Log Info</button>
+                <button class="btn btn-success" onclick="logSuccess()">✅ Log Success</button>
+                <button class="btn btn-warning" onclick="logWarning()">⚠️ Log Warning</button>
+                <button class="btn btn-danger" onclick="logError()">❌ Log Error</button>
+                <button class="btn btn-success" onclick="logDebug()">🔍 Log Debug</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📱 Webhook Simulation</h2>
+            <p>Simulate webhook events to test logging:</p>
+            <div class="log-controls">
+                <button class="btn btn-success" onclick="simulateWebhook('message_received')">📨 Message Received</button>
+                <button class="btn btn-success" onclick="simulateWebhook('message_sent')">📤 Message Sent</button>
+                <button class="btn btn-success" onclick="simulateWebhook('user_joined')">👤 User Joined</button>
+                <button class="btn btn-success" onclick="simulateWebhook('user_left')">👋 User Left</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the browser logging utility -->
+    <script src="browser-logging.js"></script>
+
+    <script>
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLoggerStatus();
+            
+            // Set default log level
+            document.getElementById('logLevel').value = 'INFO';
+        });
+
+        // Update logger status display
+        function updateLoggerStatus() {
+            if (window.messengerLoggerUtils) {
+                const status = window.messengerLoggerUtils.getStatus();
+                document.getElementById('loggerStatus').innerHTML = `
+                    <strong>Status:</strong> ${status.enabled ? '✅ Enabled' : '❌ Disabled'}<br>
+                    <strong>Log Level:</strong> ${status.logLevel}<br>
+                    <strong>Session ID:</strong> ${status.sessionId}<br>
+                    <strong>Request ID:</strong> ${status.requestId || 'None'}<br>
+                    <strong>Log Count:</strong> ${status.logCount}<br>
+                    <strong>Last Update:</strong> ${status.timestamp}
+                `;
+            } else {
+                document.getElementById('loggerStatus').innerHTML = '❌ Logger not available';
+            }
+        }
+
+        // Get logger status
+        function getLoggerStatus() {
+            updateLoggerStatus();
+            if (window.messengerLoggerUtils) {
+                const status = window.messengerLoggerUtils.getStatus();
+                console.log('📊 Logger Status:', status);
+            }
+        }
+
+        // Clear logs
+        function clearLogs() {
+            if (window.messengerLoggerUtils) {
+                window.messengerLoggerUtils.clearLogs();
+                updateLoggerStatus();
+            }
+        }
+
+        // Export logs
+        function exportLogs() {
+            if (window.messengerLoggerUtils) {
+                window.messengerLoggerUtils.exportLogs();
+            }
+        }
+
+        // Toggle logging
+        function toggleLogging() {
+            if (window.messengerLoggerUtils) {
+                const status = window.messengerLoggerUtils.getStatus();
+                window.messengerLoggerUtils.setEnabled(!status.enabled);
+                updateLoggerStatus();
+            }
+        }
+
+        // Set log level
+        function setLogLevel() {
+            if (window.messengerLoggerUtils) {
+                const level = document.getElementById('logLevel').value;
+                window.messengerLoggerUtils.setLogLevel(level);
+                updateLoggerStatus();
+            }
+        }
+
+        // Test API endpoint
+        async function testEndpoint() {
+            const baseUrl = document.getElementById('apiUrl').value;
+            const endpoint = document.getElementById('testEndpoint').value;
+            const method = document.getElementById('requestMethod').value;
+            const body = document.getElementById('requestBody').value;
+
+            const url = baseUrl + endpoint;
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            if (method === 'POST' && body) {
+                try {
+                    options.body = body;
+                } catch (e) {
+                    alert('Invalid JSON in request body');
+                    return;
+                }
+            }
+
+            try {
+                // Log the request
+                if (window.messengerLogger) {
+                    window.messengerLogger.apiRequest(method, url, body ? JSON.parse(body) : null);
+                }
+
+                const startTime = Date.now();
+                const response = await fetch(url, options);
+                const duration = Date.now() - startTime;
+                const data = await response.json();
+
+                // Log the response
+                if (window.messengerLogger) {
+                    window.messengerLogger.apiResponse(method, url, response.status, data, duration);
+                }
+
+                // Display response
+                const responseDiv = document.getElementById('response');
+                responseDiv.style.display = 'block';
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+
+                // Update logger status
+                updateLoggerStatus();
+
+            } catch (error) {
+                console.error('API test failed:', error);
+                alert('API test failed: ' + error.message);
+            }
+        }
+
+        // Clear response
+        function clearResponse() {
+            document.getElementById('response').style.display = 'none';
+        }
+
+        // Custom logging functions
+        function logInfo() {
+            const message = document.getElementById('customMessage').value || 'Custom info message';
+            const data = parseCustomData();
+            if (window.messengerLogger) {
+                window.messengerLogger.info(message, data);
+            }
+        }
+
+        function logSuccess() {
+            const message = document.getElementById('customMessage').value || 'Custom success message';
+            const data = parseCustomData();
+            if (window.messengerLogger) {
+                window.messengerLogger.success(message, data);
+            }
+        }
+
+        function logWarning() {
+            const message = document.getElementById('customMessage').value || 'Custom warning message';
+            const data = parseCustomData();
+            if (window.messengerLogger) {
+                window.messengerLogger.warn(message, data);
+            }
+        }
+
+        function logError() {
+            const message = document.getElementById('customMessage').value || 'Custom error message';
+            const data = parseCustomData();
+            if (window.messengerLogger) {
+                window.messengerLogger.error(message, data);
+            }
+        }
+
+        function logDebug() {
+            const message = document.getElementById('customMessage').value || 'Custom debug message';
+            const data = parseCustomData();
+            if (window.messengerLogger) {
+                window.messengerLogger.debug(message, data);
+            }
+        }
+
+        // Parse custom data
+        function parseCustomData() {
+            const dataText = document.getElementById('customData').value;
+            if (!dataText) return null;
+            
+            try {
+                return JSON.parse(dataText);
+            } catch (e) {
+                alert('Invalid JSON in custom data');
+                return null;
+            }
+        }
+
+        // Simulate webhook events
+        function simulateWebhook(eventType) {
+            const webhookData = {
+                object: 'page',
+                entry: [{
+                    id: '123456789',
+                    time: Math.floor(Date.now() / 1000),
+                    messaging: [{
+                        sender: { id: 'user_123' },
+                        recipient: { id: 'page_123' },
+                        timestamp: Math.floor(Date.now() / 1000),
+                        message: {
+                            text: 'Hello from webhook simulation!',
+                            mid: 'mid_' + Date.now()
+                        }
+                    }]
+                }]
+            };
+
+            if (window.messengerLogger) {
+                window.messengerLogger.webhookEvent(eventType, webhookData);
+            }
+        }
+
+        // Auto-update status every 5 seconds
+        setInterval(updateLoggerStatus, 5000);
+    </script>
+</body>
+</html>
