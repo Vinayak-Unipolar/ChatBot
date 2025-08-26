@@ -153,6 +153,25 @@ try {
 
 log.info('=== SERVER INITIALIZATION COMPLETE ===');
 
+// Test endpoint to verify routing
+app.get('/test', (req, res) => {
+    res.json({
+        message: 'Test endpoint working!',
+        timestamp: new Date().toISOString(),
+        messengerInstance: !!messenger,
+        instagramInstance: !!instagram,
+        _logging: {
+            timestamp: new Date().toISOString(),
+            requestId: Date.now().toString(),
+            serverInfo: {
+                nodeEnv: process.env.NODE_ENV || 'development',
+                version: '2.0.0',
+                apiVersion: 'v23.0'
+            }
+        }
+    });
+});
+
 // Verify request signature for security
 function verifyRequestSignature(req, res, buf) {
     log.debug('=== REQUEST SIGNATURE VERIFICATION ===');
@@ -899,6 +918,216 @@ app.post('/api/send-image', async (req, res) => {
                 serverInfo: {
                     nodeEnv: process.env.NODE_ENV || 'development',
                     version: '1.0.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
+    }
+});
+
+// Send button template
+app.post('/api/send-button-template', async (req, res) => {
+    log.info('=== SEND BUTTON TEMPLATE API REQUEST START ===');
+    log.debug('Request details', {
+        body: req.body,
+        headers: req.headers,
+        ip: req.ip
+    });
+    
+    try {
+        const { userId, text, buttons, platform = 'messenger' } = req.body;
+        
+        log.debug('Parsed request data', { userId, text, buttons, platform });
+        
+        if (!userId || !text || !buttons || !Array.isArray(buttons)) {
+            log.warn('Validation failed: missing userId, text, or buttons array', {
+                received: { userId, text, buttons, platform }
+            });
+            
+            const errorResponse = { 
+                error: 'Missing userId, text, or buttons array',
+                received: { userId, text, buttons, platform },
+                _logging: {
+                    timestamp: new Date().toISOString(),
+                    requestId: Date.now().toString(),
+                    validationError: 'Missing required fields',
+                    serverInfo: {
+                        nodeEnv: process.env.NODE_ENV || 'development',
+                        version: '2.0.0',
+                        apiVersion: 'v23.0'
+                    }
+                }
+            };
+            
+            return res.status(400).json(errorResponse);
+        }
+        
+        log.debug('Creating messenger instance for platform', { platform });
+        const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        
+        log.debug('Attempting to send button template...');
+        const startTime = Date.now();
+        const result = await messengerInstance.sendButtonTemplate(userId, text, buttons);
+        const duration = Date.now() - startTime;
+        
+        log.success('Button template sent successfully', {
+            result,
+            duration: `${duration}ms`,
+            platform,
+            userId,
+            buttonsCount: buttons.length
+        });
+        
+        log.info('=== SEND BUTTON TEMPLATE API REQUEST END ===');
+        
+        const successResponse = { 
+            success: true, 
+            result,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                buttonsCount: buttons.length,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '2.0.0',
+                    apiVersion: 'v23.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
+    } catch (error) {
+        log.error('=== SEND BUTTON TEMPLATE API ERROR ===', error, {
+            requestBody: req.body,
+            userId: req.body.userId,
+            platform: req.body.platform
+        });
+        
+        const errorResponse = { 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '2.0.0',
+                    apiVersion: 'v23.0'
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
+    }
+});
+
+// Send quick reply
+app.post('/api/send-quick-reply', async (req, res) => {
+    log.info('=== SEND QUICK REPLY API REQUEST START ===');
+    log.debug('Request details', {
+        body: req.body,
+        headers: req.headers,
+        ip: req.ip
+    });
+    
+    try {
+        const { userId, message, quickReplies, platform = 'messenger' } = req.body;
+        
+        log.debug('Parsed request data', { userId, message, quickReplies, platform });
+        
+        if (!userId || !message || !quickReplies || !Array.isArray(quickReplies)) {
+            log.warn('Validation failed: missing userId, message, or quickReplies array', {
+                received: { userId, message, quickReplies, platform }
+            });
+            
+            const errorResponse = { 
+                error: 'Missing userId, message, or quickReplies array',
+                received: { userId, message, quickReplies, platform },
+                _logging: {
+                    timestamp: new Date().toISOString(),
+                    requestId: Date.now().toString(),
+                    validationError: 'Missing required fields',
+                    serverInfo: {
+                        nodeEnv: process.env.NODE_ENV || 'development',
+                        version: '2.0.0',
+                        apiVersion: 'v23.0'
+                    }
+                }
+            };
+            
+            return res.status(400).json(errorResponse);
+        }
+        
+        log.debug('Creating messenger instance for platform', { platform });
+        const messengerInstance = platform === 'instagram' ? instagram : messenger;
+        
+        log.debug('Attempting to send quick reply...');
+        const startTime = Date.now();
+        const result = await messengerInstance.sendQuickReply(userId, message, quickReplies);
+        const duration = Date.now() - startTime;
+        
+        log.success('Quick reply sent successfully', {
+            result,
+            duration: `${duration}ms`,
+            platform,
+            userId,
+            quickRepliesCount: quickReplies.length
+        });
+        
+        log.info('=== SEND QUICK REPLY API REQUEST END ===');
+        
+        const successResponse = { 
+            success: true, 
+            result,
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                responseTime: `${duration}ms`,
+                platform: platform,
+                quickRepliesCount: quickReplies.length,
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '2.0.0',
+                    apiVersion: 'v23.0'
+                }
+            }
+        };
+        
+        res.json(successResponse);
+        
+    } catch (error) {
+        log.error('=== SEND QUICK REPLY API ERROR ===', error, {
+            requestBody: req.body,
+            userId: req.body.userId,
+            platform: req.body.platform
+        });
+        
+        const errorResponse = { 
+            error: error.message, 
+            errorType: error.constructor.name,
+            details: 'Check server logs for more information',
+            _logging: {
+                timestamp: new Date().toISOString(),
+                requestId: Date.now().toString(),
+                errorDetails: {
+                    name: error.name,
+                    code: error.code,
+                    status: error.status
+                },
+                serverInfo: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    version: '2.0.0',
+                    apiVersion: 'v23.0'
                 }
             }
         };
@@ -1677,13 +1906,21 @@ app.use((req, res) => {
                 '/webhook',
                 '/api/send-message',
                 '/api/send-image',
+                '/api/send-generic-template',
+                '/api/send-list-template',
+                '/api/send-button-template',
+                '/api/send-quick-reply',
+                '/api/send-reaction',
+                '/api/send-notification',
+                '/api/insights',
                 '/api/conversations',
                 '/api/user/:userId',
                 '/health'
             ],
             serverInfo: {
                 nodeEnv: process.env.NODE_ENV || 'development',
-                version: '1.0.0'
+                version: '2.0.0',
+                apiVersion: 'v23.0'
             }
         }
     };

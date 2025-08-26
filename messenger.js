@@ -56,6 +56,11 @@ class Messenger {
             ...parameters
         };
         
+        // Add body for POST requests
+        if (method === 'POST') {
+            options.body = JSON.stringify(params);
+        }
+        
         console.log('Request parameters:', {
             hasAccessToken: !!params.access_token,
             accessTokenPreview: params.access_token ? params.access_token.substring(0, 10) + '...' : 'None',
